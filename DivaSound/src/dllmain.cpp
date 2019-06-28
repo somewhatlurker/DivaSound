@@ -66,35 +66,44 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	//loopThread = std::thread(testLoop);
 
-	//WinMM seems to get lowest actual latency for me
-	ma_backend backends[] = { ma_backend_winmm };
-	//ma_backend backends[] = { ma_backend_wasapi };
+	ma_backend backends[] = { ma_backend_wasapi };
 	//ma_backend backends[] = { ma_backend_dsound };
+	//ma_backend backends[] = { ma_backend_winmm };
+
+	contextConfig = ma_context_config_init();
+	contextConfig.threadPriority = ma_thread_priority_highest;
+
+	if (ma_context_init(backends, sizeof(backends) / sizeof(backends[0]), &contextConfig, &context) != MA_SUCCESS) {
+		printf("[DivaSound] Failed to initialize context\n");
+		return;
+	}
 		
 	deviceConfig = ma_device_config_init(ma_device_type_playback);
 	deviceConfig.playback.format = ma_format_s16;
 	deviceConfig.playback.channels = 2;
 	deviceConfig.sampleRate = 44100;
-	deviceConfig.bufferSizeInFrames = 441; // 10ms
+	deviceConfig.bufferSizeInFrames = 441; // actual result may be larger
 	deviceConfig.periods = 3;
 	deviceConfig.dataCallback = audioCallback;
 	deviceConfig.pUserData = NULL;
 
-	if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
+	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
 		printf("[DivaSound] Failed to open playback device\n");
+		ma_context_uninit(&context);
 		return;
 	}
 	printf("[DivaSound] Opened playback device\n");
 
-	//printf("winmm fragment size: %d\n", device.winmm.fragmentSizeInFrames);
-	//printf("wasapi buffer size: %d\n", device.wasapi.actualBufferSizeInFramesPlayback);
+	printf("[DivaSound] WASAPI buffer size: %d (%dms)\n", device.wasapi.actualBufferSizeInFramesPlayback, device.wasapi.actualBufferSizeInFramesPlayback*1000/44100);
 
-	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, 4096); // this doesn't affect latency, so....   really large is fine
+	//divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, 1024); // this doesn't affect latency, so....   really large is fine
+	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, device.wasapi.actualBufferSizeInFramesPlayback);
 	printf("[DivaSound] Allocated internal audio buffer\n");
 
 	if (ma_device_start(&device) != MA_SUCCESS) {
 		printf("[DivaSound] Failed to start playback device\n");
 		ma_device_uninit(&device);
+		ma_context_uninit(&context);
 		return;
 	}
 	printf("[DivaSound] Started playback\n");

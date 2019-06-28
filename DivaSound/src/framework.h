@@ -26,5 +26,7 @@ void *divaAudInternalBufCls;
 
 std::thread loopThread;
 
+ma_context_config contextConfig;
+ma_context context;
 ma_device_config deviceConfig;
 ma_device device;
