@@ -1,4 +1,4 @@
-DivaSound is a replacement audio output for Project DIVA Arcade Future Tone.
+DivaSound is a replacement audio output for Project DIVA Arcade Future Tone 7.10
 
 **Why?**  
 The original WASAPI output used by the game only supports exclusive mode, and
@@ -14,8 +14,5 @@ initialisation, replacing most of it with our own code.
 The original buffer is read by reusing a function the game already used.
 
 **Known Issues**  
-* Latency is less than stellar, but at least playable.
-  While it's not strictly a problem, I will accept PRs that help on this.
-* It seems prone to crashing.
-  I suspect this happens when the game can't supply enough data to fill a
-  buffer, but I haven't tested this yet.
+* Latency can be less than stellar, depending on your hardware.  
+  It'll probably be playable, but I'll accept PRs to help lower this.
