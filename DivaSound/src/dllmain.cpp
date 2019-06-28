@@ -44,6 +44,9 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	(void)pOutput;
 	(void)pInput;
 	(void)frameCount;
+
+	//printf("%d\n", *(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10));
+	//while (*(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10) != 32) { }; // loop until ready????
 	// this mess is probably far from ideal, but whatever
 	divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pOutput, frameCount, 0, 0); // enableFlag);
 	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
@@ -63,6 +66,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	//loopThread = std::thread(testLoop);
 
+	//WinMM seems to get lowest actual latency for me
 	ma_backend backends[] = { ma_backend_winmm };
 	//ma_backend backends[] = { ma_backend_wasapi };
 	//ma_backend backends[] = { ma_backend_dsound };
@@ -85,8 +89,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	//printf("winmm fragment size: %d\n", device.winmm.fragmentSizeInFrames);
 	//printf("wasapi buffer size: %d\n", device.wasapi.actualBufferSizeInFramesPlayback);
 
-	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, 882); // allow for two full buffers
-	//divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, device.wasapi.actualBufferSizeInFramesPlayback);
+	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, 4096); // this doesn't affect latency, so....   really large is fine
 	printf("[DivaSound] Allocated internal audio buffer\n");
 
 	if (ma_device_start(&device) != MA_SUCCESS) {
