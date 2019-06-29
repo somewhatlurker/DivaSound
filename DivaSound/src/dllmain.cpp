@@ -45,9 +45,16 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	(void)pInput;
 	(void)frameCount;
 
+	if (frameCount > divaBufSizeInFrames)
+	{
+		printf("[DivaSound] Warning: PDAFT buffer is too small\n");
+		printf("    If increasing it in your config doesn't help, let somewhatlurker know.\n");
+		frameCount = divaBufSizeInFrames;
+	}
+
 	//printf("%d\n", *(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10));
 	//while (*(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10) != 32) { }; // loop until ready????
-	// this mess is probably far from ideal, but whatever
+
 	divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pOutput, frameCount, 0, 0); // enableFlag);
 	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
 }
@@ -82,8 +89,8 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	deviceConfig.playback.format = ma_format_s16;
 	deviceConfig.playback.channels = 2;
 	deviceConfig.sampleRate = 44100;
-	deviceConfig.bufferSizeInFrames = 441; // actual result may be larger
-	deviceConfig.periods = 3;
+	deviceConfig.bufferSizeInMilliseconds = GetPrivateProfileIntW(L"buffer", L"buffer_size", 10, CONFIG_FILE); // 10; // actual result may be larger
+	deviceConfig.periods = GetPrivateProfileIntW(L"buffer", L"periods", 2, CONFIG_FILE); // 3;
 	deviceConfig.dataCallback = audioCallback;
 	deviceConfig.pUserData = NULL;
 
@@ -94,10 +101,15 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	}
 	printf("[DivaSound] Opened playback device\n");
 
-	printf("[DivaSound] WASAPI buffer size: %d (%dms)\n", device.wasapi.actualBufferSizeInFramesPlayback, device.wasapi.actualBufferSizeInFramesPlayback*1000/44100);
+	actualBufferSizeInMillisecondsPlayback = device.wasapi.actualBufferSizeInFramesPlayback * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
+	printf("[DivaSound] WASAPI buffer size: %d (%dms at %dHz)\n", device.wasapi.actualBufferSizeInFramesPlayback, actualBufferSizeInMillisecondsPlayback, device.playback.internalSampleRate);
+	printf("[DivaSound] WASAPI periods: %d\n", device.playback.internalPeriods);
 
-	//divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, 1024); // this doesn't affect latency, so....   really large is fine
-	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, device.wasapi.actualBufferSizeInFramesPlayback);
+	divaBufSizeInFrames = device.wasapi.actualBufferSizeInFramesPlayback * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
+	divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
+	printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
+
+	divaAudioAllocInternalBuffer(divaAudInternalBufCls, unk, unk2, divaBufSizeInFrames);
 	printf("[DivaSound] Allocated internal audio buffer\n");
 
 	if (ma_device_start(&device) != MA_SUCCESS) {
