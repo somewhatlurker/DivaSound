@@ -15,4 +15,5 @@ The original buffer is read by reusing a function the game already used.
 
 **Known Issues**  
 * Latency can be less than stellar, depending on your hardware.  
-  It'll probably be playable, but I'll accept PRs to help lower this.
+  It'll probably be playable, but I'll accept PRs to help lower this.  
+  Setting your audio output to use 44100Hz sample rate may slightly help.
