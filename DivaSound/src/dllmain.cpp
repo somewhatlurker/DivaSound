@@ -32,7 +32,7 @@ void resizeInternalBuffers(uint64_t frames)
 	divaAudInternalMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
 	divaAudInternalMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
 	divaAudInternalMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
-	printf("[DivaSound] Resized internal buffer to %d frames.\n", frames);
+	printf("[DivaSound] Resized internal buffers to %d frames.\n", frames);
 }
 
 void resizeTestLoop()
