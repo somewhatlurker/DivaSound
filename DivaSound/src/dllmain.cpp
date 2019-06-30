@@ -32,7 +32,7 @@ void resizeInternalBuffers(uint64_t frames)
 	divaAudInternalMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
 	divaAudInternalMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
 	divaAudInternalMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
-	printf("[DivaSound] Resized internal buffers to %d frames.\n", frames);
+	printf("[DivaSound] Resized internal buffers to %d frames\n", frames);
 }
 
 void resizeTestLoop()
@@ -61,7 +61,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 	if (frameCount > divaBufSizeInFrames)
 	{
-		printf("[DivaSound] Warning: PDAFT buffer is too small.\n");
+		printf("[DivaSound] Warning: PDAFT buffer is too small\n");
 		//frameCount = divaBufSizeInFrames;
 
 		// allocate a larger buffer if necessary.
@@ -95,13 +95,13 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 {
-	printf("[DivaSound] Loaded\n");
+	//printf("[DivaSound] Loaded\n");
 
 	divaAudCls = cls;
 
 	// let the game set some stuff up
 	divaAudioInit(divaAudCls, unk, unk2);
-	printf("[DivaSound] Game audio initialised\n");
+	//printf("[DivaSound] Game audio initialised\n");
 
 	divaAudInternalMixCls = (audioInfo*)*(uint64_t*)((uint64_t)divaAudCls + 0x70);
 
@@ -130,7 +130,6 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	
 
 	deviceConfig = ma_device_config_init(ma_device_type_playback);
-	deviceConfig.playback.format = ma_format_s16;
 	deviceConfig.playback.channels = nChannels;
 	deviceConfig.sampleRate = 44100;
 	deviceConfig.bufferSizeInMilliseconds = GetPrivateProfileIntW(L"buffer", L"buffer_size", 10, CONFIG_FILE); // actual result may be larger
@@ -140,15 +139,18 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	if (bitDepth == 32)
 		deviceConfig.playback.format = ma_format_f32;
-
+	else
+		deviceConfig.playback.format = ma_format_s16;
+	
 
 	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
 		printf("[DivaSound] Failed to open playback device\n");
 		ma_context_uninit(&context);
 		return;
 	}
-	printf("[DivaSound] Opened playback device\n");
+	//printf("[DivaSound] Opened playback device\n");
 
+	printf("[DivaSound] Output config: %dch %dbit\n", nChannels, bitDepth);
 
 	actualBufferSizeInMillisecondsPlayback = device.wasapi.actualBufferSizeInFramesPlayback * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
 	printf("[DivaSound] WASAPI buffer size: %d (%dms at %dHz)\n", device.wasapi.actualBufferSizeInFramesPlayback, actualBufferSizeInMillisecondsPlayback, device.playback.internalSampleRate);
@@ -160,7 +162,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 
 	divaAudioAllocInternalBuffers(divaAudInternalMixCls, unk, unk2, divaBufSizeInFrames);
-	printf("[DivaSound] Allocated internal audio mixer\n");
+	printf("[DivaSound] Created internal audio mixer\n");
 
 
 	if (ma_device_start(&device) != MA_SUCCESS) {
