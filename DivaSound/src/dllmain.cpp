@@ -31,7 +31,7 @@ void testLoop()
 	byte* pData = new byte[bufferFrameCount * 4 * 2];
 	while (true)
 	{
-		divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pData, bufferFrameCount, false, 0); // enableFlag);
+		divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pData, bufferFrameCount, false, 0);
 		printf("%p %d\n", divaAudInternalBufCls, pData[0]);
 		Sleep(20);
 	}
@@ -55,7 +55,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	//printf("%d\n", *(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10));
 	//while (*(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10) != 32) { }; // loop until ready????
 
-	divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pOutput, frameCount, 0, 0); // enableFlag);
+	divaAudioFillbuffer(divaAudInternalBufCls, (int16_t*)pOutput, frameCount, 0, 0);
 	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
 }
 
