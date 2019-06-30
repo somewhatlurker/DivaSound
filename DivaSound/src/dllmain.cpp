@@ -126,7 +126,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	actualBufferSizeInMillisecondsPlayback = device.wasapi.actualBufferSizeInFramesPlayback * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
 	printf("[DivaSound] WASAPI buffer size: %d (%dms at %dHz)\n", device.wasapi.actualBufferSizeInFramesPlayback, actualBufferSizeInMillisecondsPlayback, device.playback.internalSampleRate);
-	printf("[DivaSound] WASAPI periods: %d\n", device.playback.internalPeriods);
+	printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
 
 	divaBufSizeInFrames = device.wasapi.actualBufferSizeInFramesPlayback * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
 	divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
