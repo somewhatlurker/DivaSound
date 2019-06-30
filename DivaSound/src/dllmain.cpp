@@ -105,19 +105,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	divaAudInternalMixCls = (audioInfo*)*(uint64_t*)((uint64_t)divaAudCls + 0x70);
 
-
-	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
-	if (nChannels != 4) nChannels = 2;
-
-	bitDepth = GetPrivateProfileIntW(L"general", L"bit_depth", 16, CONFIG_FILE);
-	if (bitDepth != 32) bitDepth = 16;
-
 	
-	divaAudInternalMixCls->output_details->channels = nChannels; // this could replace stereo patch
-	divaAudInternalMixCls->output_details->rate = 44100; // really does nothing
-	divaAudInternalMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
-	
-
 	ma_backend backends[] = { ma_backend_wasapi };
 
 	contextConfig = ma_context_config_init();
@@ -128,6 +116,12 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 		return;
 	}
 	
+
+	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
+	if (nChannels != 4) nChannels = 2;
+
+	bitDepth = GetPrivateProfileIntW(L"general", L"bit_depth", 16, CONFIG_FILE);
+	if (bitDepth != 32) bitDepth = 16;
 
 	deviceConfig = ma_device_config_init(ma_device_type_playback);
 	deviceConfig.playback.channels = nChannels;
@@ -141,6 +135,11 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 		deviceConfig.playback.format = ma_format_f32;
 	else
 		deviceConfig.playback.format = ma_format_s16;
+
+
+	divaAudInternalMixCls->output_details->channels = nChannels; // this could replace stereo patch
+	divaAudInternalMixCls->output_details->rate = 44100; // really does nothing
+	divaAudInternalMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
 	
 
 	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
