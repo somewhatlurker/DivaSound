@@ -4,7 +4,8 @@
 // Windows Header Files
 #include <windows.h>
 #include <string>
-#include <thread>
+#include <vector>
+#include <mutex>
 #define MINIAUDIO_IMPLEMENTATION
 #include "../miniaudio/miniaudio.h"
 
@@ -15,13 +16,41 @@ void (__cdecl* divaAudioFillbuffer)(void* cls, int16_t* buf, uint64_t nFrames, b
 // disableHpVol uses speaker volume for headphones (only works in 4ch mode)
 // invertPhase inverts the output signal (only works if disableHpVol == false)
 
-int (__cdecl* divaAudioAllocInternalBuffer)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames) = (int(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames))0x140626710;
+int (__cdecl* divaAudioAllocInternalBuffers)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames) = (int(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames))0x140626710;
 // unks are the same as from the init call. they seem to set internal mixing channel count(?) 
 // cls is the same as for divaAudioFillbuffer
 // nFrames is number of audio frames to hold in the mixing buffer (only used when divaAudioFillbuffer is called). Internally this is multiplied by 16 (buffers are built using 32bit floats)
 
+#pragma pack(push, 1)
+struct formatDetails {
+	byte padding00[0x58];
 
-// known internal audio class variables (used by divaAudioFillbuffer and divaAudioAllocInternalBuffer)
+	uint64_t channels;
+	uint64_t rate; // should always =44100
+	uint64_t depth; // should always =16
+};
+
+struct audioInfo {
+	formatDetails* output_details;
+
+	void* state1;
+	uint64_t state1_len;
+	void* state2;
+	uint64_t state2_len;
+
+	float* mixbuffer;
+	uint64_t mixbuffer_size;
+
+	std::mutex* volume_mutex; // not sure if this is pointer or not
+	float volume_master;
+	float volume_channels[4];
+
+	byte padding54[4];
+};
+#pragma pack(pop)
+
+// known internal audio class variables (used by divaAudioFillbuffer and divaAudioAllocInternalBuffers)
+// cls + 0x00 = pointer to a format struct???
 // cls + 0x08 = internal state 1 vector pointer
 // cls + 0x10 = internal state 1 length (channels?)
 // cls + 0x18 = internal state 2 vector pointer
@@ -36,13 +65,13 @@ int (__cdecl* divaAudioAllocInternalBuffer)(void* cls, uint64_t unk, uint64_t un
 // cls + 0x4c = ch3 volume
 // cls + 0x50 = ch4 volume
 //
-// cls + 0x58 = number of output channels
-// cls + 0x60 = audio sample rate
-// cls + 0x68 = audio bit depth (only 16bit works)
+// formatstruct + 0x58 = number of output channels
+// formatstruct + 0x60 = audio sample rate
+// formatstruct + 0x68 = audio bit depth (only 16bit works)
 
 
 void *divaAudCls;
-void *divaAudInternalBufCls;
+audioInfo *divaAudInternalMixCls;
 
 std::thread loopThread;
 
@@ -54,6 +83,9 @@ ma_device device;
 int actualBufferSizeInMillisecondsPlayback;
 int divaBufSizeInFrames;
 int divaBufSizeInMilliseconds;
+
+int nChannels; // this can only be 2 or 4
+int bitDepth; // signed 16 bit integer or 32 bit float
 
 std::wstring ExePath() {
 	WCHAR buffer[MAX_PATH];
