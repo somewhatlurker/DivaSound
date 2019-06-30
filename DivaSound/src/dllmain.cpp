@@ -25,6 +25,32 @@ void NopBytes(void* address, unsigned int num)
 	InjectCode(address, newbytes);
 }
 
+void resizeInternalBuffers(uint64_t frames)
+{
+	divaBufSizeInFrames = frames;
+	divaAudInternalMixCls->mixbuffer = new float[divaBufSizeInFrames * 4];
+	divaAudInternalMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
+	divaAudInternalMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
+	divaAudInternalMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
+	printf("[DivaSound] Resized internal buffer to %d frames.\n", frames);
+}
+
+void resizeTestLoop()
+{
+	bool dir = true;
+	while (true)
+	{
+		Sleep(5000);
+
+		if (dir)
+			resizeInternalBuffers(divaBufSizeInFrames + 3000);
+		else
+			resizeInternalBuffers(divaBufSizeInFrames - 3000);
+
+		dir = !dir;
+	}
+}
+
 
 void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
@@ -35,14 +61,14 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 	if (frameCount > divaBufSizeInFrames)
 	{
-		printf("[DivaSound] Warning: PDAFT buffer is too small\n");
-		printf("    If increasing it in your config doesn't help, let somewhatlurker know.\n");
-		frameCount = divaBufSizeInFrames;
+		printf("[DivaSound] Warning: PDAFT buffer is too small.\n");
+		//frameCount = divaBufSizeInFrames;
+
+		// allocate a larger buffer if necessary.
+		// add 128 frames of padding because this isn't normal and we want to avoid it happening again if possible.
+		resizeInternalBuffers(frameCount + 128);
 	}
-
-	//printf("%d\n", *(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10));
-	//while (*(uint64_t*)((uint64_t)divaAudInternalBufCls + 0x10) != 32) { }; // loop until ready????
-
+	
 	divaAudioFillbuffer(divaAudInternalMixCls, (int16_t*)pOutput, frameCount, 0, 0);
 	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
 
@@ -144,6 +170,9 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 		return;
 	}
 	printf("[DivaSound] Started playback\n");
+
+
+	//loopThread = std::thread(resizeTestLoop);
 }
 
 

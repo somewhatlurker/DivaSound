@@ -22,6 +22,19 @@ int (__cdecl* divaAudioAllocInternalBuffers)(void* cls, uint64_t unk, uint64_t u
 // nFrames is number of audio frames to hold in the mixing buffer (only used when divaAudioFillbuffer is called). Internally this is multiplied by 16 (buffers are built using 32bit floats)
 
 #pragma pack(push, 1)
+struct _50 {
+	byte padding00[0x50];
+};
+struct _70 {
+	byte padding00[0x70];
+};
+
+struct streamingState {
+	std::vector<_50>* state;
+	float* buffer;
+	uint64_t buffer_size;
+};
+
 struct formatDetails {
 	byte padding00[0x58];
 
@@ -33,9 +46,9 @@ struct formatDetails {
 struct audioInfo {
 	formatDetails* output_details;
 
-	void* state1;
+	std::vector<_70>** state1;
 	uint64_t state1_len;
-	void* state2;
+	streamingState* state2;
 	uint64_t state2_len;
 
 	float* mixbuffer;
@@ -51,9 +64,9 @@ struct audioInfo {
 
 // known internal audio class variables (used by divaAudioFillbuffer and divaAudioAllocInternalBuffers)
 // cls + 0x00 = pointer to a format struct???
-// cls + 0x08 = internal state 1 vector pointer
+// cls + 0x08 = internal state 1 vector pointer (or full class?)
 // cls + 0x10 = internal state 1 length (channels?)
-// cls + 0x18 = internal state 2 vector pointer
+// cls + 0x18 = internal state 2 vector pointer (or full class?)
 // cls + 0x20 = internal state 2 length (channels?)
 // cls + 0x28 = mixing buffer pointer (when a buffer is generated, this is filled with 32bit floats (four per frame)
 // cls + 0x30 = mixing buffer size (frame count * 16)
