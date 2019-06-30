@@ -72,7 +72,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	divaAudioFillbuffer(divaAudInternalMixCls, (int16_t*)pOutput, frameCount, 0, 0);
 	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
 
-	if (bitDepth == 32) // floating point output
+	if (bitDepth > 16) // we should generate the output buffer ourselves
 	{
 		float volumes[4];
 		for (int i = 0; i < 4; i++)
@@ -87,7 +87,24 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 		{
 			for (int currentChannel = startChannel; currentChannel < 4; currentChannel++)
 			{
-				((float*)pOutput)[i*nChannels + currentChannel-startChannel] = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[currentChannel-startChannel];
+				if (bitDepth == 24) // 24 bit int output
+				{
+					int32_t out_val = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[currentChannel-startChannel] * 8388607.0f;
+
+					if (out_val > 8388607) out_val = 8388607;
+					else if (out_val < -8388608) out_val = -8388608;
+
+					uint32_t out_pos = (i*nChannels + currentChannel-startChannel) * 3;
+
+					((byte*)pOutput)[out_pos] = out_val;
+					((byte*)pOutput)[out_pos + 1] = out_val >> 8;
+					((byte*)pOutput)[out_pos + 2] = out_val >> 16;
+				}
+
+				else if (bitDepth == 32) // floating point output
+				{
+					((float*)pOutput)[i*nChannels + currentChannel-startChannel] = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[currentChannel-startChannel];
+				}
 			}
 		}
 	}
@@ -121,7 +138,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	if (nChannels != 4) nChannels = 2;
 
 	bitDepth = GetPrivateProfileIntW(L"general", L"bit_depth", 16, CONFIG_FILE);
-	if (bitDepth != 32) bitDepth = 16;
+	if (bitDepth != 32 && bitDepth != 24) bitDepth = 16;
 
 	deviceConfig = ma_device_config_init(ma_device_type_playback);
 	deviceConfig.playback.channels = nChannels;
@@ -133,6 +150,8 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 
 	if (bitDepth == 32)
 		deviceConfig.playback.format = ma_format_f32;
+	else if (bitDepth == 24)
+		deviceConfig.playback.format = ma_format_s24;
 	else
 		deviceConfig.playback.format = ma_format_s16;
 
