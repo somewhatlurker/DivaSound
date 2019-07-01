@@ -87,14 +87,18 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 		{
 			for (int currentChannel = startChannel; currentChannel < 4; currentChannel++)
 			{
+				// note: currentChannel is for the game's buffer, outputChannel is for our output buffer.
+				// outputChannel should also be used for volumes.
+				int outputChannel = currentChannel - startChannel;
+
 				if (bitDepth == 24) // 24 bit int output
 				{
-					int32_t out_val = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[currentChannel-startChannel] * 8388607.0f;
+					int32_t out_val = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel] * 8388607.0f;
 
 					if (out_val > 8388607) out_val = 8388607;
 					else if (out_val < -8388608) out_val = -8388608;
 
-					uint32_t out_pos = (i*nChannels + currentChannel-startChannel) * 3;
+					uint64_t out_pos = (i*nChannels + outputChannel) * 3;
 
 					((byte*)pOutput)[out_pos] = out_val;
 					((byte*)pOutput)[out_pos + 1] = out_val >> 8;
@@ -103,7 +107,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 				else if (bitDepth == 32) // floating point output
 				{
-					((float*)pOutput)[i*nChannels + currentChannel-startChannel] = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[currentChannel-startChannel];
+					((float*)pOutput)[i*nChannels + outputChannel] = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel];
 				}
 			}
 		}
