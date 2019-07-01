@@ -11,15 +11,15 @@
 
 void (__cdecl* divaAudioInit)(void* cls, uint64_t unk, uint64_t unk2) = (void(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2))0x1406269F0;
 
-void (__cdecl* divaAudioFillbuffer)(void* cls, int16_t* buf, uint64_t nFrames, bool disableHpVol, bool invertPhase) = (void(__cdecl*)(void* cls, int16_t* buf, uint64_t nFrames, bool disableHpVol, bool invertPhase))0x140627370;
-// cls is from a pointer at audio init's cls + 0x70
+void (__cdecl* divaAudioFillbuffer)(void* mixer, int16_t* buf, uint64_t nFrames, bool disableHpVol, bool invertPhase) = (void(__cdecl*)(void* mixer, int16_t* buf, uint64_t nFrames, bool disableHpVol, bool invertPhase))0x140627370;
+// mixer is a pointer to an audioMixer (from audio init's cls + 0x70)
 // disableHpVol uses speaker volume for headphones (only works in 4ch mode)
 // invertPhase inverts the output signal (only works if disableHpVol == false)
 
-int (__cdecl* divaAudioAllocInternalBuffers)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames) = (int(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames))0x140626710;
-// unks are the same as from the init call. they seem to set internal mixing channel count(?) 
-// cls is the same as for divaAudioFillbuffer
-// nFrames is number of audio frames to hold in the mixing buffer (only used when divaAudioFillbuffer is called). Internally this is multiplied by 16 (buffers are built using 32bit floats)
+int (__cdecl* divaAudioAllocMixer)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames) = (int(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2, int64_t nFrames))0x140626710;
+// unks are the same as from the init call. they seem to set the internal mixing channel counts(?) 
+// cls is the same as mixer in divaAudioFillbuffer
+// nFrames is number of audio frames to hold in the mixing buffers (only used when divaAudioFillbuffer is called). Internally this is multiplied by 16 (buffers are built using 32bit floats)
 
 #pragma pack(push, 1)
 struct _50 {
@@ -43,7 +43,7 @@ struct formatDetails {
 	uint64_t depth; // should always =16
 };
 
-struct audioInfo {
+struct audioMixer {
 	formatDetails* output_details;
 
 	std::vector<_70>** state1;
@@ -59,6 +59,11 @@ struct audioInfo {
 	float volume_channels[4];
 
 	byte padding54[4];
+};
+
+struct initClass {
+	byte padding00[0x70];
+	audioMixer* mixer;
 };
 #pragma pack(pop)
 
@@ -83,8 +88,8 @@ struct audioInfo {
 // formatstruct + 0x68 = audio bit depth (only 16bit works)
 
 
-void *divaAudCls;
-audioInfo *divaAudInternalMixCls;
+initClass *divaAudCls;
+audioMixer *divaAudioMixCls;
 
 std::thread loopThread;
 

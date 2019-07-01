@@ -28,10 +28,10 @@ void NopBytes(void* address, unsigned int num)
 void resizeInternalBuffers(uint64_t frames)
 {
 	divaBufSizeInFrames = frames;
-	divaAudInternalMixCls->mixbuffer = new float[divaBufSizeInFrames * 4];
-	divaAudInternalMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
-	divaAudInternalMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
-	divaAudInternalMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
+	divaAudioMixCls->mixbuffer = new float[divaBufSizeInFrames * 4];
+	divaAudioMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
+	divaAudioMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
+	divaAudioMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
 	printf("[DivaSound] Resized internal buffers to %d frames\n", frames);
 }
 
@@ -69,15 +69,15 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 		resizeInternalBuffers(frameCount + 128);
 	}
 	
-	divaAudioFillbuffer(divaAudInternalMixCls, (int16_t*)pOutput, frameCount, 0, 0);
-	//printf("%p %d\n", divaAudInternalBufCls, ((int16_t*)pOutput)[0]);
+	divaAudioFillbuffer(divaAudioMixCls, (int16_t*)pOutput, frameCount, 0, 0);
+	//printf("%p %d\n", divaAudioMixCls, ((int16_t*)pOutput)[0]);
 
 	if (bitDepth > 16) // we should generate the output buffer ourselves
 	{
 		float volumes[4];
 		for (int i = 0; i < 4; i++)
 		{
-			volumes[i] = divaAudInternalMixCls->volume_master * divaAudInternalMixCls->volume_channels[i];
+			volumes[i] = divaAudioMixCls->volume_master * divaAudioMixCls->volume_channels[i];
 		}
 
 
@@ -93,7 +93,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 				if (bitDepth == 24) // 24 bit int output
 				{
-					int32_t out_val = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel] * 8388607.0f;
+					int32_t out_val = divaAudioMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel] * 8388607.0f;
 
 					if (out_val > 8388607) out_val = 8388607;
 					else if (out_val < -8388608) out_val = -8388608;
@@ -107,24 +107,31 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 				else if (bitDepth == 32) // floating point output
 				{
-					((float*)pOutput)[i*nChannels + outputChannel] = divaAudInternalMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel];
+					((float*)pOutput)[i*nChannels + outputChannel] = divaAudioMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel];
 				}
 			}
 		}
 	}
 }
 
-void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
+void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 {
 	//printf("[DivaSound] Loaded\n");
 
 	divaAudCls = cls;
 
 	// let the game set some stuff up
-	divaAudioInit(divaAudCls, unk, unk2);
+	// no longer necessary yayyyy
+	//divaAudioInit(divaAudCls, unk, unk2);
 	//printf("[DivaSound] Game audio initialised\n");
 
-	divaAudInternalMixCls = (audioInfo*)*(uint64_t*)((uint64_t)divaAudCls + 0x70);
+	// setup some variables instead of using the original init function
+	divaAudCls->mixer = new audioMixer();
+	divaAudioMixCls = divaAudCls->mixer;
+
+	divaAudioMixCls->volume_mutex = new std::mutex();
+
+	divaAudioMixCls->output_details = new formatDetails();
 
 	
 	ma_backend backends[] = { ma_backend_wasapi };
@@ -160,9 +167,9 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 		deviceConfig.playback.format = ma_format_s16;
 
 
-	divaAudInternalMixCls->output_details->channels = nChannels; // this could replace stereo patch
-	divaAudInternalMixCls->output_details->rate = 44100; // really does nothing
-	divaAudInternalMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
+	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
+	divaAudioMixCls->output_details->rate = 44100; // really does nothing
+	divaAudioMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
 	
 
 	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
@@ -183,7 +190,7 @@ void hookedAudioInit(void *cls, uint64_t unk, uint64_t unk2)
 	printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
 
 
-	divaAudioAllocInternalBuffers(divaAudInternalMixCls, unk, unk2, divaBufSizeInFrames);
+	divaAudioAllocMixer(divaAudioMixCls, unk, unk2, divaBufSizeInFrames);
 	printf("[DivaSound] Created internal audio mixer\n");
 
 
@@ -207,24 +214,20 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 {
 	if (ul_reason_for_call == DLL_PROCESS_ATTACH)
 	{
-		InjectCode((void*)0x0000000140A860C0, { 0x02 }); // force stereo mode
+		// these patches are only needed if calling the game's own init function
+		// they shouldn't be necessary anymore
 
-		// attempts to jump over early code (failed)
-		//InjectCode((void*)0x0000000140626A50, { 0x66, 0xE9, 0x3E, 0x01 }); // JMP to 0x140626b92
-		//InjectCode((void*)0x0000000140626A50, { 0x66, 0xE9, 0x86, 0x00 }); // JMP to 0x140626ada
-		//InjectCode((void*)0x0000000140626A50, { 0x66, 0xE9, 0x4E, 0x00 }); // JMP to 0x140626aa2
+		//// force stereo mode
+		//InjectCode((void*)0x0000000140A860C0, { 0x02 });
 
-		// attempts to remove a call here
-		// first failed
-		//InjectCode((void*)0x0000000140626B56, { 0x66, 0xE9, 0x38, 0x00 }); // JMP to 0x140626b92 (always take branch)
-		//NopBytes((void*)0x140626ba9, 11); // remove check
-		// but this works
-		NopBytes((void*)0x140626b56, 7);
-		NopBytes((void*)0x140626b8a, 8);
-		InjectCode((void*)0x140626b8a, { 0x48, 0x83, 0xEF, 0x18 }); // fix value of RDI because I changed the flow here
-		NopBytes((void*)0x140626ba9, 11);
+		//// remove a call to get device info and skip the check for it
+		//NopBytes((void*)0x140626b56, 7);
+		//NopBytes((void*)0x140626b8a, 8);
+		//InjectCode((void*)0x140626b8a, { 0x48, 0x83, 0xEF, 0x18 }); // fix value of RDI because I changed the flow here
+		//NopBytes((void*)0x140626ba9, 11);
 
-		InjectCode((void*)0x0000000140626C29, { 0x48, 0xE9 }); // return from the original init early when we run it
+		//// return from the original init early
+		//InjectCode((void*)0x0000000140626C29, { 0x48, 0xE9 });
     
 		DisableThreadLibraryCalls(hModule);
 		DetourTransactionBegin();
