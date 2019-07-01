@@ -166,6 +166,14 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	else
 		deviceConfig.playback.format = ma_format_s16;
 
+	if (nChannels == 4)
+	{
+		deviceConfig.playback.channelMap[0] = MA_CHANNEL_FRONT_LEFT;
+		deviceConfig.playback.channelMap[1] = MA_CHANNEL_FRONT_RIGHT;
+		deviceConfig.playback.channelMap[2] = MA_CHANNEL_BACK_LEFT;
+		deviceConfig.playback.channelMap[3] = MA_CHANNEL_BACK_RIGHT;
+	}
+
 
 	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
 	divaAudioMixCls->output_details->rate = 44100; // really does nothing
