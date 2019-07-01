@@ -98,12 +98,14 @@ ma_context context;
 ma_device_config deviceConfig;
 ma_device device;
 
-int actualBufferSizeInMillisecondsPlayback;
+int maInternalBufferSizeInMilliseconds;
 int divaBufSizeInFrames;
 int divaBufSizeInMilliseconds;
 
 int nChannels; // this can only be 2 or 4
-int bitDepth; // signed 16 bit integer or 32 bit float
+int bitDepth; // signed 16/24 bit integer or 32 bit float
+wchar_t backendName[32]; // wasapi or directsound
+ma_backend maBackend;
 
 std::wstring ExePath() {
 	WCHAR buffer[MAX_PATH];

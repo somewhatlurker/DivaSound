@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <iostream>
 #include <vector>
+#include <strsafe.h>
 
 void InjectCode(void* address, const std::vector<uint8_t> data)
 {
@@ -114,9 +115,37 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	}
 }
 
+void loadConfig()
+{
+	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
+	if (nChannels != 4) nChannels = 2;
+
+
+	bitDepth = GetPrivateProfileIntW(L"general", L"bit_depth", 16, CONFIG_FILE);
+	if (bitDepth != 32 && bitDepth != 24) bitDepth = 16;
+
+
+	GetPrivateProfileStringW(L"general", L"backend", L"wasapi", backendName, 32, CONFIG_FILE);
+	for (wchar_t& chr : backendName)
+		chr = towlower(chr);
+
+	if (lstrcmpW(backendName, L"directsound") == 0)
+	{
+		StringCchCopyW(backendName, 32, L"DirectSound");
+		maBackend = ma_backend_dsound;
+	}
+	else
+	{
+		StringCchCopyW(backendName, 32, L"WASAPI");
+		maBackend = ma_backend_wasapi;
+	}
+}
+
 void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 {
+	loadConfig();
 	//printf("[DivaSound] Loaded\n");
+	printf("[DivaSound] Output config: %S %dch %dbit\n", backendName, nChannels, bitDepth);
 
 	divaAudCls = cls;
 
@@ -133,8 +162,12 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 
 	divaAudioMixCls->output_details = new formatDetails();
 
+	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
+	divaAudioMixCls->output_details->rate = 44100; // really does nothing
+	divaAudioMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
 	
-	ma_backend backends[] = { ma_backend_wasapi };
+
+	ma_backend backends[] = { maBackend };
 
 	contextConfig = ma_context_config_init();
 	contextConfig.threadPriority = ma_thread_priority_highest;
@@ -143,13 +176,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		printf("[DivaSound] Failed to initialize context\n");
 		return;
 	}
-	
 
-	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
-	if (nChannels != 4) nChannels = 2;
-
-	bitDepth = GetPrivateProfileIntW(L"general", L"bit_depth", 16, CONFIG_FILE);
-	if (bitDepth != 32 && bitDepth != 24) bitDepth = 16;
 
 	deviceConfig = ma_device_config_init(ma_device_type_playback);
 	deviceConfig.playback.channels = nChannels;
@@ -173,11 +200,6 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		deviceConfig.playback.channelMap[2] = MA_CHANNEL_BACK_LEFT;
 		deviceConfig.playback.channelMap[3] = MA_CHANNEL_BACK_RIGHT;
 	}
-
-
-	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
-	divaAudioMixCls->output_details->rate = 44100; // really does nothing
-	divaAudioMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
 	
 
 	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
@@ -187,13 +209,12 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	}
 	//printf("[DivaSound] Opened playback device\n");
 
-	printf("[DivaSound] Output config: %dch %dbit\n", nChannels, bitDepth);
-
-	actualBufferSizeInMillisecondsPlayback = device.wasapi.actualBufferSizeInFramesPlayback * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
-	printf("[DivaSound] WASAPI buffer size: %d (%dms at %dHz)\n", device.wasapi.actualBufferSizeInFramesPlayback, actualBufferSizeInMillisecondsPlayback, device.playback.internalSampleRate);
+	
+	maInternalBufferSizeInMilliseconds = device.playback.internalBufferSizeInFrames * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
+	printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, device.playback.internalSampleRate);
 	printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
 
-	divaBufSizeInFrames = device.wasapi.actualBufferSizeInFramesPlayback * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
+	divaBufSizeInFrames = device.playback.internalBufferSizeInFrames * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
 	divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
 	printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
 
