@@ -107,7 +107,9 @@ int nChannels; // this can only be 2 or 4
 int bitDepth; // signed 16/24 bit integer or 32 bit float
 wchar_t backendName[32]; // wasapi or directsound
 ma_backend maBackend;
-bool useAsio = false;
+bool useAsio;
+int asioDevice;
+bool showAsioPanel;
 
 std::wstring ExePath() {
 	WCHAR buffer[MAX_PATH];

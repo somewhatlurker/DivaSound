@@ -143,6 +143,7 @@ void loadConfig()
 	for (wchar_t& chr : backendName)
 		chr = towlower(chr);
 
+	useAsio = false;
 	if (lstrcmpW(backendName, L"asio") == 0)
 	{
 		StringCchCopyW(backendName, 32, L"ASIO");
@@ -158,6 +159,11 @@ void loadConfig()
 		StringCchCopyW(backendName, 32, L"WASAPI");
 		maBackend = ma_backend_wasapi;
 	}
+
+
+	asioDevice = GetPrivateProfileIntW(L"asio", L"device", -1, CONFIG_FILE);
+
+	showAsioPanel = GetPrivateProfileIntW(L"asio", L"show_config", 0, CONFIG_FILE) > 0 ? true : false;
 }
 
 void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
@@ -200,13 +206,13 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 			return;
 		}
 
-		if (!BASS_ASIO_Init(-1, BASS_ASIO_THREAD))
+		if (!BASS_ASIO_Init(asioDevice, BASS_ASIO_THREAD))
 		{
 			printf("[DivaSound] Failed to initialize device\n");
 			return;
 		}
 
-		//BASS_ASIO_ControlPanel();
+		if(showAsioPanel) BASS_ASIO_ControlPanel();
 
 		if (!BASS_ASIO_ChannelEnable(false, 0, (ASIOPROC*)asioCallback, NULL))
 		{
