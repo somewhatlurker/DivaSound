@@ -123,6 +123,12 @@ DWORD asioCallback(bool input, DWORD channel, void* buffer, DWORD length, void* 
 	return length;
 }
 
+void asioClose()
+{
+	if (BASS_ASIO_IsStarted()) BASS_ASIO_Stop();
+	BASS_ASIO_Free();
+}
+
 void loadConfig()
 {
 	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
@@ -182,6 +188,12 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 
 	if (useAsio)
 	{
+		if (BASS_ASIO_Init == NULL)
+		{
+			printf("[DivaSound] BASS ASIO not loaded...\n");
+			return;
+		}
+
 		if (!BASS_ASIO_Init(-1, BASS_ASIO_THREAD))
 		{
 			printf("[DivaSound] Failed to initialize device\n");
@@ -342,11 +354,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH)
 	{
-		if (useAsio)
-		{
-			if (BASS_ASIO_IsStarted()) BASS_ASIO_Stop();
-			BASS_ASIO_Free();
-		}
+		if (useAsio) asioClose();
 	}
 	return TRUE;
 }

@@ -107,46 +107,46 @@ user   : The 'user' parameter given when calling BASS_ASIO_SetNotify */
 // BASS_ASIO_ChannelGetLevel flags
 #define BASS_ASIO_LEVEL_RMS		0x1000000
 
-DWORD BASSASIODEF(BASS_ASIO_GetVersion)();
-BOOL BASSASIODEF(BASS_ASIO_SetUnicode)(BOOL unicode);
-DWORD BASSASIODEF(BASS_ASIO_ErrorGetCode)();
-BOOL BASSASIODEF(BASS_ASIO_GetDeviceInfo)(DWORD device, BASS_ASIO_DEVICEINFO *info);
-DWORD BASSASIODEF(BASS_ASIO_AddDevice)(const GUID *clsid, const char *driver, const char *name);
-BOOL BASSASIODEF(BASS_ASIO_SetDevice)(DWORD device);
-DWORD BASSASIODEF(BASS_ASIO_GetDevice)();
-BOOL BASSASIODEF(BASS_ASIO_Init)(int device, DWORD flags);
-BOOL BASSASIODEF(BASS_ASIO_Free)();
-BOOL BASSASIODEF(BASS_ASIO_Lock)(BOOL lock);
-BOOL BASSASIODEF(BASS_ASIO_SetNotify)(ASIONOTIFYPROC *proc, void *user);
-BOOL BASSASIODEF(BASS_ASIO_ControlPanel)();
-BOOL BASSASIODEF(BASS_ASIO_GetInfo)(BASS_ASIO_INFO *info);
-BOOL BASSASIODEF(BASS_ASIO_CheckRate)(double rate);
-BOOL BASSASIODEF(BASS_ASIO_SetRate)(double rate);
-double BASSASIODEF(BASS_ASIO_GetRate)();
-BOOL BASSASIODEF(BASS_ASIO_Start)(DWORD buflen, DWORD threads);
-BOOL BASSASIODEF(BASS_ASIO_Stop)();
-BOOL BASSASIODEF(BASS_ASIO_IsStarted)();
-DWORD BASSASIODEF(BASS_ASIO_GetLatency)(BOOL input);
-float BASSASIODEF(BASS_ASIO_GetCPU)();
-BOOL BASSASIODEF(BASS_ASIO_Monitor)(int input, DWORD output, DWORD gain, DWORD state, DWORD pan);
-BOOL BASSASIODEF(BASS_ASIO_SetDSD)(BOOL dsd);
-BOOL BASSASIODEF(BASS_ASIO_Future)(DWORD selector, void *param);
+// DWORD BASSASIODEF(BASS_ASIO_GetVersion)();
+// BOOL BASSASIODEF(BASS_ASIO_SetUnicode)(BOOL unicode);
+// DWORD BASSASIODEF(BASS_ASIO_ErrorGetCode)();
+// BOOL BASSASIODEF(BASS_ASIO_GetDeviceInfo)(DWORD device, BASS_ASIO_DEVICEINFO *info);
+// DWORD BASSASIODEF(BASS_ASIO_AddDevice)(const GUID *clsid, const char *driver, const char *name);
+// BOOL BASSASIODEF(BASS_ASIO_SetDevice)(DWORD device);
+// DWORD BASSASIODEF(BASS_ASIO_GetDevice)();
+// BOOL BASSASIODEF(BASS_ASIO_Init)(int device, DWORD flags);
+// BOOL BASSASIODEF(BASS_ASIO_Free)();
+// BOOL BASSASIODEF(BASS_ASIO_Lock)(BOOL lock);
+// BOOL BASSASIODEF(BASS_ASIO_SetNotify)(ASIONOTIFYPROC *proc, void *user);
+// BOOL BASSASIODEF(BASS_ASIO_ControlPanel)();
+// BOOL BASSASIODEF(BASS_ASIO_GetInfo)(BASS_ASIO_INFO *info);
+// BOOL BASSASIODEF(BASS_ASIO_CheckRate)(double rate);
+// BOOL BASSASIODEF(BASS_ASIO_SetRate)(double rate);
+// double BASSASIODEF(BASS_ASIO_GetRate)();
+// BOOL BASSASIODEF(BASS_ASIO_Start)(DWORD buflen, DWORD threads);
+// BOOL BASSASIODEF(BASS_ASIO_Stop)();
+// BOOL BASSASIODEF(BASS_ASIO_IsStarted)();
+// DWORD BASSASIODEF(BASS_ASIO_GetLatency)(BOOL input);
+// float BASSASIODEF(BASS_ASIO_GetCPU)();
+// BOOL BASSASIODEF(BASS_ASIO_Monitor)(int input, DWORD output, DWORD gain, DWORD state, DWORD pan);
+// BOOL BASSASIODEF(BASS_ASIO_SetDSD)(BOOL dsd);
+// BOOL BASSASIODEF(BASS_ASIO_Future)(DWORD selector, void *param);
 
-BOOL BASSASIODEF(BASS_ASIO_ChannelGetInfo)(BOOL input, DWORD channel, BASS_ASIO_CHANNELINFO *info);
-BOOL BASSASIODEF(BASS_ASIO_ChannelReset)(BOOL input, int channel, DWORD flags);
-BOOL BASSASIODEF(BASS_ASIO_ChannelEnable)(BOOL input, DWORD channel, ASIOPROC *proc, void *user);
-BOOL BASSASIODEF(BASS_ASIO_ChannelEnableMirror)(DWORD channel, BOOL input2, DWORD channel2);
-BOOL BASSASIODEF(BASS_ASIO_ChannelEnableBASS)(BOOL input, DWORD channel, DWORD handle, BOOL join);
-BOOL BASSASIODEF(BASS_ASIO_ChannelJoin)(BOOL input, DWORD channel, int channel2);
-BOOL BASSASIODEF(BASS_ASIO_ChannelPause)(BOOL input, DWORD channel);
-DWORD BASSASIODEF(BASS_ASIO_ChannelIsActive)(BOOL input, DWORD channel);
-BOOL BASSASIODEF(BASS_ASIO_ChannelSetFormat)(BOOL input, DWORD channel, DWORD format);
-DWORD BASSASIODEF(BASS_ASIO_ChannelGetFormat)(BOOL input, DWORD channel);
-BOOL BASSASIODEF(BASS_ASIO_ChannelSetRate)(BOOL input, DWORD channel, double rate);
-double BASSASIODEF(BASS_ASIO_ChannelGetRate)(BOOL input, DWORD channel);
-BOOL BASSASIODEF(BASS_ASIO_ChannelSetVolume)(BOOL input, int channel, float volume);
-float BASSASIODEF(BASS_ASIO_ChannelGetVolume)(BOOL input, int channel);
-float BASSASIODEF(BASS_ASIO_ChannelGetLevel)(BOOL input, DWORD channel);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelGetInfo)(BOOL input, DWORD channel, BASS_ASIO_CHANNELINFO *info);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelReset)(BOOL input, int channel, DWORD flags);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelEnable)(BOOL input, DWORD channel, ASIOPROC *proc, void *user);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelEnableMirror)(DWORD channel, BOOL input2, DWORD channel2);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelEnableBASS)(BOOL input, DWORD channel, DWORD handle, BOOL join);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelJoin)(BOOL input, DWORD channel, int channel2);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelPause)(BOOL input, DWORD channel);
+// DWORD BASSASIODEF(BASS_ASIO_ChannelIsActive)(BOOL input, DWORD channel);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelSetFormat)(BOOL input, DWORD channel, DWORD format);
+// DWORD BASSASIODEF(BASS_ASIO_ChannelGetFormat)(BOOL input, DWORD channel);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelSetRate)(BOOL input, DWORD channel, double rate);
+// double BASSASIODEF(BASS_ASIO_ChannelGetRate)(BOOL input, DWORD channel);
+// BOOL BASSASIODEF(BASS_ASIO_ChannelSetVolume)(BOOL input, int channel, float volume);
+// float BASSASIODEF(BASS_ASIO_ChannelGetVolume)(BOOL input, int channel);
+// float BASSASIODEF(BASS_ASIO_ChannelGetLevel)(BOOL input, DWORD channel);
 
 #ifdef __cplusplus
 }
