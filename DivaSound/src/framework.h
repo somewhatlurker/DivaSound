@@ -125,6 +125,7 @@ std::wstring CONFIG_FILE_STRING = DirPath() + L"\\plugins\\DivaSound.ini";
 LPCWSTR CONFIG_FILE = CONFIG_FILE_STRING.c_str();
 
 HMODULE bassAsioModule = LoadLibraryW(L"bassasio.dll");
+DWORD(WINAPI* BASS_ASIO_GetVersion)() = (DWORD(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_GetVersion");
 BOOL(WINAPI* BASS_ASIO_Init)(int device, DWORD flags) = (BOOL(WINAPI*)(int device, DWORD flags))GetProcAddress(bassAsioModule, "BASS_ASIO_Init");
 BOOL(WINAPI* BASS_ASIO_Free)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_Free");
 BOOL(WINAPI* BASS_ASIO_ControlPanel)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_ControlPanel");

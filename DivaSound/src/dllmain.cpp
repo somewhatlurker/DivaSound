@@ -194,6 +194,12 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 			return;
 		}
 
+		if (HIWORD(BASS_ASIO_GetVersion()) != BASSASIOVERSION)
+		{
+			printf("[DivaSound] Incorrect BASS ASIO version. Use 1.4.0.0.\n");
+			return;
+		}
+
 		if (!BASS_ASIO_Init(-1, BASS_ASIO_THREAD))
 		{
 			printf("[DivaSound] Failed to initialize device\n");
