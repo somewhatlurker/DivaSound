@@ -13,7 +13,7 @@ Previously these weren't possible with PDAFT.
 
 **How?**  
 The output is a [DIVA Loader](https://github.com/Rayduxz/DIVA-Loader) plugin.  
-It replaces the game's original audio initialisation code so that a shared-mode
+It replaces the game's original audio initialisation code so that a configurable
 stream will be created instead of the original exclusive-mode one.
 Functions from the game are called to finish starting the audio engine and
 generate output buffers as necessary.
@@ -22,3 +22,6 @@ generate output buffers as necessary.
 * Latency can be less than stellar, depending on your hardware and OS.
   It'll probably be playable, but I'll accept PRs to help lower this.  
   Setting your audio output to use 44100Hz sample rate may slightly help.
+* ASIO mode doesn't cleanly exit. This may be driver dependant.  
+  Closing the game using the debug console window seems to work well enough.
+  (tested using ASIO4ALL)

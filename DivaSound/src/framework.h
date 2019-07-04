@@ -7,7 +7,8 @@
 #include <vector>
 #include <mutex>
 #define MINIAUDIO_IMPLEMENTATION
-#include "../miniaudio/miniaudio.h"
+#include <miniaudio.h>
+#include <bassasio.h>
 
 void (__cdecl* divaAudioInit)(void* cls, uint64_t unk, uint64_t unk2) = (void(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2))0x1406269F0;
 
@@ -106,6 +107,9 @@ int nChannels; // this can only be 2 or 4
 int bitDepth; // signed 16/24 bit integer or 32 bit float
 wchar_t backendName[32]; // wasapi or directsound
 ma_backend maBackend;
+bool useAsio;
+int asioDevice;
+bool showAsioPanel;
 
 std::wstring ExePath() {
 	WCHAR buffer[MAX_PATH];
