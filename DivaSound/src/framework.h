@@ -65,6 +65,8 @@ struct audioMixer {
 struct initClass {
 	byte padding00[0x70];
 	audioMixer* mixer;
+	byte padding78[0x8];
+	int32_t idk;
 };
 #pragma pack(pop)
 
@@ -105,11 +107,15 @@ int divaBufSizeInMilliseconds;
 
 int nChannels; // this can only be 2 or 4
 int bitDepth; // signed 16/24 bit integer or 32 bit float
+int requestBuffer;
+int nPeriods;
 wchar_t backendName[32]; // wasapi or directsound
 ma_backend maBackend;
 bool useAsio;
 int asioDevice;
 bool showAsioPanel;
+
+bool useOldInit;
 
 std::wstring ExePath() {
 	WCHAR buffer[MAX_PATH];

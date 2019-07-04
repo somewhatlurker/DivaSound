@@ -139,6 +139,17 @@ void loadConfig()
 	if (bitDepth != 32 && bitDepth != 24) bitDepth = 16;
 
 
+	requestBuffer = GetPrivateProfileIntW(L"buffer", L"buffer_size", 10, CONFIG_FILE);
+	if (requestBuffer < 0) requestBuffer = 0;
+
+
+	nPeriods = GetPrivateProfileIntW(L"buffer", L"periods", 2, CONFIG_FILE);
+	if (nPeriods < 1) nPeriods = 1;
+
+
+	useOldInit = GetPrivateProfileIntW(L"general", L"alternate_init", 0, CONFIG_FILE) > 0 ? true : false;
+
+
 	GetPrivateProfileStringW(L"general", L"backend", L"wasapi", backendName, 32, CONFIG_FILE);
 	for (wchar_t& chr : backendName)
 		chr = towlower(chr);
@@ -168,25 +179,31 @@ void loadConfig()
 
 void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 {
-	loadConfig();
 	//printf("[DivaSound] Loaded\n");
 	printf("[DivaSound] Output config: %S %dch %dbit\n", backendName, nChannels, bitDepth);
 
 	divaAudCls = cls;
 
-	// let the game set some stuff up
-	// no longer necessary yayyyy
-	//divaAudioInit(divaAudCls, unk, unk2);
-	//printf("[DivaSound] Game audio initialised\n");
+	if (useOldInit)
+	{
+		printf("[DivaSound] Using old initialisation method\n");
+		// let the game set some stuff up
+		// might be necessary sometimes
+		divaAudioInit(divaAudCls, unk, unk2);
+		//printf("[DivaSound] Game audio initialised\n");
+	}
+	else
+	{
+		// setup some variables instead of using the original init function
+		divaAudCls->mixer = new audioMixer();
 
-	// setup some variables instead of using the original init function
-	divaAudCls->mixer = new audioMixer();
+		divaAudCls->mixer->volume_mutex = new std::mutex();
+
+		divaAudCls->mixer->output_details = new formatDetails();
+	}
+
 	divaAudioMixCls = divaAudCls->mixer;
-
-	divaAudioMixCls->volume_mutex = new std::mutex();
-
-	divaAudioMixCls->output_details = new formatDetails();
-
+	
 	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
 	divaAudioMixCls->output_details->rate = 44100; // really does nothing
 	divaAudioMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
@@ -281,8 +298,8 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		deviceConfig = ma_device_config_init(ma_device_type_playback);
 		deviceConfig.playback.channels = nChannels;
 		deviceConfig.sampleRate = 44100;
-		deviceConfig.bufferSizeInMilliseconds = GetPrivateProfileIntW(L"buffer", L"buffer_size", 10, CONFIG_FILE); // actual result may be larger
-		deviceConfig.periods = GetPrivateProfileIntW(L"buffer", L"periods", 2, CONFIG_FILE); // 3;
+		deviceConfig.bufferSizeInMilliseconds = requestBuffer; // actual result may be larger
+		deviceConfig.periods = nPeriods;
 		deviceConfig.dataCallback = audioCallback;
 		deviceConfig.pUserData = NULL;
 
@@ -343,20 +360,25 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 {
 	if (ul_reason_for_call == DLL_PROCESS_ATTACH)
 	{
-		// these patches are only needed if calling the game's own init function
-		// they shouldn't be necessary anymore
+		loadConfig();
 
-		//// force stereo mode
-		//InjectCode((void*)0x0000000140A860C0, { 0x02 });
+		if (useOldInit)
+		{
+			 // these patches are only needed if calling the game's own init function
+			 // they shouldn't be necessary anymore
 
-		//// remove a call to get device info and skip the check for it
-		//NopBytes((void*)0x140626b56, 7);
-		//NopBytes((void*)0x140626b8a, 8);
-		//InjectCode((void*)0x140626b8a, { 0x48, 0x83, 0xEF, 0x18 }); // fix value of RDI because I changed the flow here
-		//NopBytes((void*)0x140626ba9, 11);
+			// force stereo mode
+			InjectCode((void*)0x0000000140A860C0, { 0x02 });
 
-		//// return from the original init early
-		//InjectCode((void*)0x0000000140626C29, { 0x48, 0xE9 });
+			// remove a call to get device info and skip the check for it
+			NopBytes((void*)0x140626b56, 7);
+			NopBytes((void*)0x140626b8a, 8);
+			InjectCode((void*)0x140626b8a, { 0x48, 0x83, 0xEF, 0x18 }); // fix value of RDI because I changed the flow here
+			NopBytes((void*)0x140626ba9, 11);
+
+			// return from the original init early
+			InjectCode((void*)0x0000000140626C29, { 0x48, 0xE9 });
+		}
     
 		DisableThreadLibraryCalls(hModule);
 		DetourTransactionBegin();
@@ -366,7 +388,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH)
 	{
-		if (useAsio) asioClose();
+		if (useAsio) asioClose(); // this doesn't actually get called...
 	}
 	return TRUE;
 }
