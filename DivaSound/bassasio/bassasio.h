@@ -4,6 +4,9 @@
 
 	See the BASSASIO.CHM file for more detailed documentation
 */
+/*
+	DivaSound version -- loads the required functions at runtime
+*/
 
 #ifndef BASSASIO_H
 #define BASSASIO_H
@@ -107,25 +110,27 @@ user   : The 'user' parameter given when calling BASS_ASIO_SetNotify */
 // BASS_ASIO_ChannelGetLevel flags
 #define BASS_ASIO_LEVEL_RMS		0x1000000
 
-// DWORD BASSASIODEF(BASS_ASIO_GetVersion)();
+HMODULE bassAsioModule = LoadLibraryW(L"bassasio.dll");
+
+DWORD(WINAPI* BASS_ASIO_GetVersion)() = (DWORD(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_GetVersion");
 // BOOL BASSASIODEF(BASS_ASIO_SetUnicode)(BOOL unicode);
 // DWORD BASSASIODEF(BASS_ASIO_ErrorGetCode)();
 // BOOL BASSASIODEF(BASS_ASIO_GetDeviceInfo)(DWORD device, BASS_ASIO_DEVICEINFO *info);
 // DWORD BASSASIODEF(BASS_ASIO_AddDevice)(const GUID *clsid, const char *driver, const char *name);
 // BOOL BASSASIODEF(BASS_ASIO_SetDevice)(DWORD device);
 // DWORD BASSASIODEF(BASS_ASIO_GetDevice)();
-// BOOL BASSASIODEF(BASS_ASIO_Init)(int device, DWORD flags);
-// BOOL BASSASIODEF(BASS_ASIO_Free)();
+BOOL(WINAPI* BASS_ASIO_Init)(int device, DWORD flags) = (BOOL(WINAPI*)(int device, DWORD flags))GetProcAddress(bassAsioModule, "BASS_ASIO_Init");
+BOOL(WINAPI* BASS_ASIO_Free)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_Free");
 // BOOL BASSASIODEF(BASS_ASIO_Lock)(BOOL lock);
 // BOOL BASSASIODEF(BASS_ASIO_SetNotify)(ASIONOTIFYPROC *proc, void *user);
-// BOOL BASSASIODEF(BASS_ASIO_ControlPanel)();
-// BOOL BASSASIODEF(BASS_ASIO_GetInfo)(BASS_ASIO_INFO *info);
-// BOOL BASSASIODEF(BASS_ASIO_CheckRate)(double rate);
-// BOOL BASSASIODEF(BASS_ASIO_SetRate)(double rate);
-// double BASSASIODEF(BASS_ASIO_GetRate)();
-// BOOL BASSASIODEF(BASS_ASIO_Start)(DWORD buflen, DWORD threads);
-// BOOL BASSASIODEF(BASS_ASIO_Stop)();
-// BOOL BASSASIODEF(BASS_ASIO_IsStarted)();
+BOOL(WINAPI* BASS_ASIO_ControlPanel)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_ControlPanel");
+BOOL(WINAPI* BASS_ASIO_GetInfo)(BASS_ASIO_INFO *info) = (BOOL(WINAPI*)(BASS_ASIO_INFO *info))GetProcAddress(bassAsioModule, "BASS_ASIO_GetInfo");
+BOOL(WINAPI* BASS_ASIO_CheckRate)(double rate) = (BOOL(WINAPI*)(double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_CheckRate");
+BOOL(WINAPI* BASS_ASIO_SetRate)(double rate) = (BOOL(WINAPI*)(double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_SetRate");
+double(WINAPI* BASS_ASIO_GetRate)() = (double(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_GetRate");
+BOOL(WINAPI* BASS_ASIO_Start)(DWORD buflen, DWORD threads) = (BOOL(WINAPI*)(DWORD buflen, DWORD threads))GetProcAddress(bassAsioModule, "BASS_ASIO_Start");
+BOOL(WINAPI* BASS_ASIO_Stop)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_Stop");
+BOOL(WINAPI* BASS_ASIO_IsStarted)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_IsStarted");
 // DWORD BASSASIODEF(BASS_ASIO_GetLatency)(BOOL input);
 // float BASSASIODEF(BASS_ASIO_GetCPU)();
 // BOOL BASSASIODEF(BASS_ASIO_Monitor)(int input, DWORD output, DWORD gain, DWORD state, DWORD pan);
@@ -134,15 +139,15 @@ user   : The 'user' parameter given when calling BASS_ASIO_SetNotify */
 
 // BOOL BASSASIODEF(BASS_ASIO_ChannelGetInfo)(BOOL input, DWORD channel, BASS_ASIO_CHANNELINFO *info);
 // BOOL BASSASIODEF(BASS_ASIO_ChannelReset)(BOOL input, int channel, DWORD flags);
-// BOOL BASSASIODEF(BASS_ASIO_ChannelEnable)(BOOL input, DWORD channel, ASIOPROC *proc, void *user);
+BOOL(WINAPI* BASS_ASIO_ChannelEnable)(BOOL input, DWORD channel, ASIOPROC *proc, void *user) = (BOOL(WINAPI*)(BOOL input, DWORD channel, ASIOPROC *proc, void *user))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelEnable");
 // BOOL BASSASIODEF(BASS_ASIO_ChannelEnableMirror)(DWORD channel, BOOL input2, DWORD channel2);
 // BOOL BASSASIODEF(BASS_ASIO_ChannelEnableBASS)(BOOL input, DWORD channel, DWORD handle, BOOL join);
-// BOOL BASSASIODEF(BASS_ASIO_ChannelJoin)(BOOL input, DWORD channel, int channel2);
+BOOL(WINAPI* BASS_ASIO_ChannelJoin)(BOOL input, DWORD channel, int channel2) = (BOOL(WINAPI*)(BOOL input, DWORD channel, int channel2))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelJoin");
 // BOOL BASSASIODEF(BASS_ASIO_ChannelPause)(BOOL input, DWORD channel);
 // DWORD BASSASIODEF(BASS_ASIO_ChannelIsActive)(BOOL input, DWORD channel);
-// BOOL BASSASIODEF(BASS_ASIO_ChannelSetFormat)(BOOL input, DWORD channel, DWORD format);
+BOOL(WINAPI* BASS_ASIO_ChannelSetFormat)(BOOL input, DWORD channel, DWORD format) = (BOOL(WINAPI*)(BOOL input, DWORD channel, DWORD format))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelSetFormat");
 // DWORD BASSASIODEF(BASS_ASIO_ChannelGetFormat)(BOOL input, DWORD channel);
-// BOOL BASSASIODEF(BASS_ASIO_ChannelSetRate)(BOOL input, DWORD channel, double rate);
+BOOL(WINAPI* BASS_ASIO_ChannelSetRate)(BOOL input, DWORD channel, double rate) = (BOOL(WINAPI*)(BOOL input, DWORD channel, double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelSetRate");
 // double BASSASIODEF(BASS_ASIO_ChannelGetRate)(BOOL input, DWORD channel);
 // BOOL BASSASIODEF(BASS_ASIO_ChannelSetVolume)(BOOL input, int channel, float volume);
 // float BASSASIODEF(BASS_ASIO_ChannelGetVolume)(BOOL input, int channel);

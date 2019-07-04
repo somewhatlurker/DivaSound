@@ -125,21 +125,3 @@ std::wstring DirPath() {
 
 std::wstring CONFIG_FILE_STRING = DirPath() + L"\\plugins\\DivaSound.ini";
 LPCWSTR CONFIG_FILE = CONFIG_FILE_STRING.c_str();
-
-HMODULE bassAsioModule = LoadLibraryW(L"bassasio.dll");
-DWORD(WINAPI* BASS_ASIO_GetVersion)() = (DWORD(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_GetVersion");
-BOOL(WINAPI* BASS_ASIO_Init)(int device, DWORD flags) = (BOOL(WINAPI*)(int device, DWORD flags))GetProcAddress(bassAsioModule, "BASS_ASIO_Init");
-BOOL(WINAPI* BASS_ASIO_Free)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_Free");
-BOOL(WINAPI* BASS_ASIO_ControlPanel)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_ControlPanel");
-BOOL(WINAPI* BASS_ASIO_GetInfo)(BASS_ASIO_INFO *info) = (BOOL(WINAPI*)(BASS_ASIO_INFO *info))GetProcAddress(bassAsioModule, "BASS_ASIO_GetInfo");
-BOOL(WINAPI* BASS_ASIO_CheckRate)(double rate) = (BOOL(WINAPI*)(double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_CheckRate");
-BOOL(WINAPI* BASS_ASIO_SetRate)(double rate) = (BOOL(WINAPI*)(double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_SetRate");
-double(WINAPI* BASS_ASIO_GetRate)() = (double(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_GetRate");
-BOOL(WINAPI* BASS_ASIO_Start)(DWORD buflen, DWORD threads) = (BOOL(WINAPI*)(DWORD buflen, DWORD threads))GetProcAddress(bassAsioModule, "BASS_ASIO_Start");
-BOOL(WINAPI* BASS_ASIO_Stop)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_Stop");
-BOOL(WINAPI* BASS_ASIO_IsStarted)() = (BOOL(WINAPI*)())GetProcAddress(bassAsioModule, "BASS_ASIO_IsStarted");
-
-BOOL(WINAPI* BASS_ASIO_ChannelEnable)(BOOL input, DWORD channel, ASIOPROC *proc, void *user) = (BOOL(WINAPI*)(BOOL input, DWORD channel, ASIOPROC *proc, void *user))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelEnable");
-BOOL(WINAPI* BASS_ASIO_ChannelJoin)(BOOL input, DWORD channel, int channel2) = (BOOL(WINAPI*)(BOOL input, DWORD channel, int channel2))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelJoin");
-BOOL(WINAPI* BASS_ASIO_ChannelSetFormat)(BOOL input, DWORD channel, DWORD format) = (BOOL(WINAPI*)(BOOL input, DWORD channel, DWORD format))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelSetFormat");
-BOOL(WINAPI* BASS_ASIO_ChannelSetRate)(BOOL input, DWORD channel, double rate) = (BOOL(WINAPI*)(BOOL input, DWORD channel, double rate))GetProcAddress(bassAsioModule, "BASS_ASIO_ChannelSetRate");
