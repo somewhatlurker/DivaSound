@@ -150,7 +150,7 @@ void loadConfig()
 	if (nPeriods < 1) nPeriods = 1;
 
 
-	useOldInit = GetPrivateProfileIntW(L"general", L"alternate_init", 0, CONFIG_FILE) == 0 ? true : false;
+	useOldInit = GetPrivateProfileIntW(L"general", L"alternate_init", 0, CONFIG_FILE) > 0 ? false : true;
 
 
 	GetPrivateProfileStringW(L"general", L"backend", L"wasapi", backendName, 32, CONFIG_FILE);
