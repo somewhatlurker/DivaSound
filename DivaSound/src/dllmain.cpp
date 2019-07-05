@@ -34,6 +34,7 @@ void resizeInternalBuffers(uint64_t frames)
 	divaAudioMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
 	divaAudioMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
 	divaAudioMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
+	divaAudCls->buffer_size = divaBufSizeInFrames;
 	printf("[DivaSound] Resized internal buffers to %d frames\n", frames);
 }
 
@@ -199,14 +200,14 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 
 		divaAudCls->mixer->volume_mutex = new std::mutex();
 
-		divaAudCls->mixer->output_details = new formatDetails();
+		divaAudCls->mixer->audioClass = divaAudCls;
 	}
 
 	divaAudioMixCls = divaAudCls->mixer;
 	
-	divaAudioMixCls->output_details->channels = nChannels; // this could replace stereo patch
-	divaAudioMixCls->output_details->rate = 44100; // really does nothing
-	divaAudioMixCls->output_details->depth = bitDepth; // setting this to something other than 16 just removes output
+	divaAudCls->channels = nChannels; // this could replace stereo patch
+	divaAudCls->rate = 44100; // really does nothing
+	divaAudCls->depth = bitDepth; // setting this to something other than 16 just removes output
 	
 
 	if (useAsio)
@@ -349,6 +350,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		printf("[DivaSound] Started playback\n");
 	}
 
+	divaAudCls->buffer_size = divaBufSizeInFrames;
 	//loopThread = std::thread(resizeTestLoop);
 }
 

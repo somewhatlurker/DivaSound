@@ -36,16 +36,10 @@ struct streamingState {
 	uint64_t buffer_size;
 };
 
-struct formatDetails {
-	byte padding00[0x58];
-
-	uint64_t channels;
-	uint64_t rate; // should always =44100
-	uint64_t depth; // should always =16
-};
+struct initClass;
 
 struct audioMixer {
-	formatDetails* output_details;
+	initClass* audioClass;
 
 	std::vector<_70>** state1;
 	uint64_t state1_len;
@@ -63,7 +57,16 @@ struct audioMixer {
 };
 
 struct initClass {
-	byte padding00[0x70];
+	byte padding00[0x40];
+
+	uint64_t buffer_size;
+
+	byte padding48[0x10];
+
+	uint64_t channels;
+	uint64_t rate; // should always =44100
+	uint64_t depth; // should always =16
+
 	audioMixer* mixer;
 	byte padding78[0x8];
 	int32_t idk;
