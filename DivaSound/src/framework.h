@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <string>
 #include <vector>
-#include <mutex>
+#include <thread>
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 #include <bassasio.h>
@@ -23,6 +23,8 @@ int (__cdecl* divaAudioAllocMixer)(void* cls, uint64_t unk, uint64_t unk2, int64
 // unks are the same as from the init call. they seem to set the internal mixing channel counts(?) 
 // cls is the same as mixer in divaAudioFillbuffer
 // nFrames is number of audio frames to hold in the mixing buffers (only used when divaAudioFillbuffer is called). Internally this is multiplied by 16 (buffers are built using 32bit floats)
+
+int(__cdecl* mtx_init)(void* mutex, int type) = (int(__cdecl*)(void* mutex, int type))0x14081DEF4;
 
 #pragma pack(push, 1)
 struct _50 {
@@ -51,7 +53,7 @@ struct audioMixer {
 	float* mixbuffer;
 	uint64_t mixbuffer_size;
 
-	std::mutex* volume_mutex; // not sure if this is pointer or not
+	void* volume_mutex; // not sure if this is pointer or not
 	float volume_master;
 	float volume_channels[4];
 

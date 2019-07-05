@@ -199,13 +199,14 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	{
 		// setup some variables instead of using the original init function
 		divaAudCls->mixer = new audioMixer();
-		divaAudCls->mixer->volume_mutex = new std::mutex();
 		divaAudCls->mixer->volume_master = 1.0f;
 		divaAudCls->mixer->volume_channels[0] = 1.0f;
 		divaAudCls->mixer->volume_channels[1] = 1.0f;
 		divaAudCls->mixer->volume_channels[2] = 1.0f;
 		divaAudCls->mixer->volume_channels[3] = 1.0f;
 		divaAudCls->mixer->audioClass = divaAudCls;
+
+		mtx_init(&divaAudCls->mixer->volume_mutex, 2);
 	}
 
 	divaAudioMixCls = divaAudCls->mixer;
@@ -213,33 +214,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	divaAudCls->channels = nChannels; // this could replace stereo patch
 	divaAudCls->rate = 44100; // really does nothing
 	divaAudCls->depth = bitDepth; // setting this to something other than 16 just removes output
-	
-	if (!useOldInit)
-	{
-		// just trying anything to get stability now
-		if (FAILED(CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&(divaAudCls->pEnumerator))))
-		{
-			printf("[DivaSound] Dummy WASAPI enumerator creation failed\n");
-			SAFE_RELEASE(divaAudCls->pEnumerator);
-		}
-		if (FAILED(divaAudCls->pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &(divaAudCls->pDevice))))
-		{
-			printf("[DivaSound] Dummy WASAPI device creation failed\n");
-			SAFE_RELEASE(divaAudCls->pEnumerator);
-			SAFE_RELEASE(divaAudCls->pDevice);
-		}
-		if (FAILED(divaAudCls->pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&(divaAudCls->pAudioClient))))
-		{
-			printf("[DivaSound] Dummy WASAPI device activation failed\n");
-			SAFE_RELEASE(divaAudCls->pEnumerator);
-			SAFE_RELEASE(divaAudCls->pDevice);
-			SAFE_RELEASE(divaAudCls->pAudioClient);
-		}
-	}
-	if (!useOldInit)
-	{
-		//divaAudCls->hCallback = (HANDLE)39;
-	}
+
 
 	if (useAsio)
 	{
