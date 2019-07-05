@@ -9,6 +9,8 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 #include <bassasio.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
 
 void (__cdecl* divaAudioInit)(void* cls, uint64_t unk, uint64_t unk2) = (void(__cdecl*)(void* cls, uint64_t unk, uint64_t unk2))0x1406269F0;
 
@@ -57,28 +59,34 @@ struct audioMixer {
 };
 
 struct initClass {
-	byte padding00[0x40];
+	WAVEFORMATEXTENSIBLE wave_format;
+	IMMDeviceEnumerator *pEnumerator;
+	IMMDevice *pDevice;
+	IAudioClient *pAudioClient;
+
 
 	uint64_t buffer_size;
 
-	byte padding48[0x10];
+	IAudioRenderClient *pRenderClient;
+	HANDLE hEvent;
 
 	uint64_t channels;
 	uint64_t rate; // should always =44100
 	uint64_t depth; // should always =16
 
 	audioMixer* mixer;
-	byte padding78[0x8];
+	
+	HANDLE hCallback;
 	int32_t idk;
 };
 #pragma pack(pop)
 
-// known internal audio class variables (used by divaAudioFillbuffer and divaAudioAllocInternalBuffers)
-// cls + 0x00 = pointer to a format struct???
-// cls + 0x08 = internal state 1 vector pointer (or full class?)
-// cls + 0x10 = internal state 1 length (channels?)
-// cls + 0x18 = internal state 2 vector pointer (or full class?)
-// cls + 0x20 = internal state 2 length (channels?)
+// known internal audio mixer variables (used by divaAudioFillbuffer and divaAudioAllocMixer)
+// cls + 0x00 = pointer to main audio/init class
+// cls + 0x08 = internal state 1 (SE?) vector pointer (or full class?)
+// cls + 0x10 = internal state 1 (SE?) length (channels?)
+// cls + 0x18 = internal state 2 (streaming?) vector pointer (or full class?)
+// cls + 0x20 = internal state 2 (streaming?) length (channels?)
 // cls + 0x28 = mixing buffer pointer (when a buffer is generated, this is filled with 32bit floats (four per frame)
 // cls + 0x30 = mixing buffer size (frame count * 16)
 //
@@ -89,9 +97,26 @@ struct initClass {
 // cls + 0x4c = ch3 volume
 // cls + 0x50 = ch4 volume
 //
-// formatstruct + 0x58 = number of output channels
-// formatstruct + 0x60 = audio sample rate
-// formatstruct + 0x68 = audio bit depth (only 16bit works)
+//
+// known main/init audio class variables (used by divaAudioInit)
+// cls + 0x0 = WAVEFORMATEXTENSIBLE wave_format (null with old method) (length 0x28)
+// cls + 0x28 = IMMDeviceEnumerator *pEnumerator
+// cls + 0x30 = IMMDevice *pDevice (default device)
+// cls + 0x38 = IAudioClient *pAudioClient
+//
+// cls + 0x40 = buffer size in frames (null with old method)
+//
+// cls + 0x48 = IAudioRenderClient *pRenderClient (null with old method)
+//
+// cls + 0x50 = HANDLE hEvent (for original WASAPI buffer timing) (null with old method)
+//
+// cls + 0x58 = number of output channels
+// cls + 0x60 = audio sample rate
+// cls + 0x68 = audio bit depth (only 16bit works)
+//
+// cls + 0x70 = pointer to mixer class
+//
+// cls + 0x78 = HANDLE hCallback (handle to original callback thread) (null with old method)
 
 
 initClass *divaAudCls;
@@ -134,3 +159,11 @@ std::wstring DirPath() {
 
 std::wstring CONFIG_FILE_STRING = DirPath() + L"\\plugins\\DivaSound.ini";
 LPCWSTR CONFIG_FILE = CONFIG_FILE_STRING.c_str();
+
+const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
+const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
+const IID IID_IAudioClient = __uuidof(IAudioClient);
+
+#define SAFE_RELEASE(punk)  \
+              if ((punk) != NULL)  \
+                { (punk)->Release(); (punk) = NULL; }
