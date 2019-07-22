@@ -158,6 +158,8 @@ void loadConfig()
 		chr = towlower(chr);
 
 	useAsio = false;
+	maSharemode = ma_share_mode_shared;
+
 	if (lstrcmpW(backendName, L"asio") == 0)
 	{
 		StringCchCopyW(backendName, 32, L"ASIO");
@@ -167,6 +169,12 @@ void loadConfig()
 	{
 		StringCchCopyW(backendName, 32, L"DirectSound");
 		maBackend = ma_backend_dsound;
+	}
+	else if (lstrcmpW(backendName, L"wasapi_exclusive") == 0)
+	{
+		StringCchCopyW(backendName, 32, L"WASAPI (Exclusive mode)");
+		maBackend = ma_backend_wasapi;
+		maSharemode = ma_share_mode_exclusive;
 	}
 	else
 	{
@@ -309,6 +317,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		deviceConfig.periods = nPeriods;
 		deviceConfig.dataCallback = audioCallback;
 		deviceConfig.pUserData = NULL;
+		deviceConfig.playback.shareMode = maSharemode;
 
 		if (bitDepth == 32)
 			deviceConfig.playback.format = ma_format_f32;

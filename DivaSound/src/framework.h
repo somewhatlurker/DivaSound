@@ -141,6 +141,7 @@ int requestBuffer;
 int nPeriods;
 wchar_t backendName[32]; // wasapi or directsound
 ma_backend maBackend;
+ma_share_mode maSharemode;
 bool useAsio;
 int asioDevice;
 bool showAsioPanel;
