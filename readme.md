@@ -5,6 +5,8 @@ This repo will still be updated as a standalone alternative and for the wiki,
 but if you use a recent version of PD Loader you do not need to install
 DivaSound separately.
 
+--------------------------------------------------------------------------------
+
 #### Why?
 The original WASAPI output used by the game only supports exclusive mode,
 and on top of that a lot of hardware can't handle it properly.  
