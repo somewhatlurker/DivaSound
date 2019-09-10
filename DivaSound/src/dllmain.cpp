@@ -165,6 +165,152 @@ DWORD asioCallback(bool input, DWORD channel, void* buffer, DWORD length, void* 
 	return length;
 }
 
+
+void asioNotifyProc(DWORD notify, void* user);
+
+bool asioInit(bool enablePanel)
+{
+	if (BASS_ASIO_Init == NULL)
+	{
+		printf("[DivaSound] BASS ASIO not loaded...\n");
+		return false;
+	}
+
+	if (HIWORD(BASS_ASIO_GetVersion()) != BASSASIOVERSION)
+	{
+		printf("[DivaSound] Incorrect BASS ASIO version. Use 1.4.0.0.\n");
+		return false;
+	}
+
+	if (!BASS_ASIO_Init(asioDevice, BASS_ASIO_THREAD))
+	{
+		printf("[DivaSound] Failed to initialize device\n");
+		return false;
+	}
+
+	if (enablePanel && showAsioPanel) BASS_ASIO_ControlPanel();
+
+	if (!BASS_ASIO_ChannelEnable(false, 0, (ASIOPROC*)asioCallback, NULL))
+	{
+		printf("[DivaSound] Failed to enable channels\n");
+		BASS_ASIO_Free();
+		return false;
+	}
+	for (int i = 1; i < nChannels; i++)
+	{
+		if (!BASS_ASIO_ChannelJoin(false, i, 0))
+		{
+			printf("[DivaSound] Failed to enable channels\n");
+			BASS_ASIO_Free();
+			return false;
+		}
+	}
+
+	if (BASS_ASIO_CheckRate(44100))
+		BASS_ASIO_SetRate(44100);
+
+	BASS_ASIO_ChannelSetRate(false, 0, 44100);
+
+	if (bitDepth == 32)
+		BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_FLOAT);
+	else if (bitDepth == 24)
+		BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_24BIT);
+	else
+		BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_16BIT);
+
+	BASS_ASIO_SetNotify((ASIONOTIFYPROC*)asioNotifyProc, NULL);
+
+	return true;
+}
+
+void asioReinit()
+{
+	printf("[DivaSound] Reinitialising ASIO device...\n");
+	closeDevice();
+
+	if (!asioInit(false)) return;
+
+	BASS_ASIO_INFO asioInfo;
+	BASS_ASIO_GetInfo(&asioInfo);
+	double actualRate = BASS_ASIO_GetRate();
+
+	printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", asioInfo.bufpref, (int)(asioInfo.bufpref * 1000 / actualRate), (int)actualRate);
+
+	divaBufSizeInFrames = (int)(asioInfo.bufpref * 44100 / actualRate);
+	divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / 44100;
+	printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, 44100);
+
+	resizeInternalBuffers(divaBufSizeInFrames);
+
+	if (!BASS_ASIO_Start(asioInfo.bufpref, 1))
+	{
+		printf("[DivaSound] Failed to start playback device\n");
+		BASS_ASIO_Free();
+		return;
+	}
+
+	printf("[DivaSound] Started playback\n");
+}
+
+void asioNotifyProc(DWORD notify, void* user)
+{
+	if (notify == BASS_ASIO_NOTIFY_RESET)
+	{
+		std::thread asioReinitThread(asioReinit);
+		asioReinitThread.join();
+	}
+}
+
+
+bool maInit()
+{
+	ma_backend backends[] = { maBackend };
+
+	contextConfig = ma_context_config_init();
+	contextConfig.threadPriority = ma_thread_priority_highest;
+
+	if (ma_context_init(backends, sizeof(backends) / sizeof(backends[0]), &contextConfig, &context) != MA_SUCCESS) {
+		printf("[DivaSound] Failed to initialize context\n");
+		return false;
+	}
+
+
+	deviceConfig = ma_device_config_init(ma_device_type_playback);
+	deviceConfig.playback.channels = nChannels;
+	deviceConfig.sampleRate = 44100;
+	deviceConfig.bufferSizeInMilliseconds = requestBuffer; // actual result may be larger
+	deviceConfig.periods = nPeriods;
+	deviceConfig.dataCallback = audioCallback;
+	deviceConfig.pUserData = NULL;
+	deviceConfig.playback.shareMode = maSharemode;
+
+	if (bitDepth == 32)
+		deviceConfig.playback.format = ma_format_f32;
+	else if (bitDepth == 24)
+		deviceConfig.playback.format = ma_format_s24;
+	else
+		deviceConfig.playback.format = ma_format_s16;
+
+	if (nChannels == 4)
+	{
+		deviceConfig.playback.channelMap[0] = MA_CHANNEL_FRONT_LEFT;
+		deviceConfig.playback.channelMap[1] = MA_CHANNEL_FRONT_RIGHT;
+		deviceConfig.playback.channelMap[2] = MA_CHANNEL_BACK_LEFT;
+		deviceConfig.playback.channelMap[3] = MA_CHANNEL_BACK_RIGHT;
+	}
+
+
+	if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
+		printf("[DivaSound] Failed to open playback device\n");
+		ma_context_uninit(&context);
+		return false;
+	}
+	//printf("[DivaSound] Opened playback device\n");
+
+	return true;
+}
+
+
 void loadConfig()
 {
 	nChannels = GetPrivateProfileIntW(L"general", L"channels", 2, CONFIG_FILE);
@@ -260,54 +406,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 
 	if (useAsio)
 	{
-		if (BASS_ASIO_Init == NULL)
-		{
-			printf("[DivaSound] BASS ASIO not loaded...\n");
-			return;
-		}
-
-		if (HIWORD(BASS_ASIO_GetVersion()) != BASSASIOVERSION)
-		{
-			printf("[DivaSound] Incorrect BASS ASIO version. Use 1.4.0.0.\n");
-			return;
-		}
-
-		if (!BASS_ASIO_Init(asioDevice, BASS_ASIO_THREAD))
-		{
-			printf("[DivaSound] Failed to initialize device\n");
-			return;
-		}
-
-		if(showAsioPanel) BASS_ASIO_ControlPanel();
-
-		if (!BASS_ASIO_ChannelEnable(false, 0, (ASIOPROC*)asioCallback, NULL))
-		{
-			printf("[DivaSound] Failed to enable channels\n");
-			BASS_ASIO_Free();
-			return;
-		}
-		for (int i = 1; i < nChannels; i++)
-		{
-			if (!BASS_ASIO_ChannelJoin(false, i, 0))
-			{
-				printf("[DivaSound] Failed to enable channels\n");
-				BASS_ASIO_Free();
-				return;
-			}
-		}
-
-		if (BASS_ASIO_CheckRate(44100))
-			BASS_ASIO_SetRate(44100);
-
-		BASS_ASIO_ChannelSetRate(false, 0, 44100);
-
-		if (bitDepth == 32)
-			BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_FLOAT);
-		else if (bitDepth == 24)
-			BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_24BIT);
-		else
-			BASS_ASIO_ChannelSetFormat(false, 0, BASS_ASIO_FORMAT_16BIT);
-
+		if (!asioInit(true)) return;
 
 		BASS_ASIO_INFO asioInfo;
 		BASS_ASIO_GetInfo(&asioInfo);
@@ -329,53 +428,12 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 			BASS_ASIO_Free();
 			return;
 		}
+
 		printf("[DivaSound] Started playback\n");
 	}
 	else
 	{
-		ma_backend backends[] = { maBackend };
-
-		contextConfig = ma_context_config_init();
-		contextConfig.threadPriority = ma_thread_priority_highest;
-
-		if (ma_context_init(backends, sizeof(backends) / sizeof(backends[0]), &contextConfig, &context) != MA_SUCCESS) {
-			printf("[DivaSound] Failed to initialize context\n");
-			return;
-		}
-
-
-		deviceConfig = ma_device_config_init(ma_device_type_playback);
-		deviceConfig.playback.channels = nChannels;
-		deviceConfig.sampleRate = 44100;
-		deviceConfig.bufferSizeInMilliseconds = requestBuffer; // actual result may be larger
-		deviceConfig.periods = nPeriods;
-		deviceConfig.dataCallback = audioCallback;
-		deviceConfig.pUserData = NULL;
-		deviceConfig.playback.shareMode = maSharemode;
-
-		if (bitDepth == 32)
-			deviceConfig.playback.format = ma_format_f32;
-		else if (bitDepth == 24)
-			deviceConfig.playback.format = ma_format_s24;
-		else
-			deviceConfig.playback.format = ma_format_s16;
-
-		if (nChannels == 4)
-		{
-			deviceConfig.playback.channelMap[0] = MA_CHANNEL_FRONT_LEFT;
-			deviceConfig.playback.channelMap[1] = MA_CHANNEL_FRONT_RIGHT;
-			deviceConfig.playback.channelMap[2] = MA_CHANNEL_BACK_LEFT;
-			deviceConfig.playback.channelMap[3] = MA_CHANNEL_BACK_RIGHT;
-		}
-
-
-		if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
-			printf("[DivaSound] Failed to open playback device\n");
-			ma_context_uninit(&context);
-			return;
-		}
-		//printf("[DivaSound] Opened playback device\n");
-
+		if (!maInit()) return;
 
 		maInternalBufferSizeInMilliseconds = device.playback.internalBufferSizeInFrames * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
 		printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, device.playback.internalSampleRate);
