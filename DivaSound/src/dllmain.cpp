@@ -24,19 +24,26 @@ void NopBytes(void* address, unsigned int num)
 {
 	std::vector<uint8_t> newbytes = {};
 
-	for (int i = 0; i < num; ++i) newbytes.push_back(0x90);
+	for (unsigned int i = 0; i < num; ++i) newbytes.push_back(0x90);
 
 	InjectCode(address, newbytes);
 }
 
-void resizeInternalBuffers(uint64_t frames)
+void resizeInternalBuffers(int frames)
 {
+	float* oldMixbuffer = divaAudioMixCls->mixbuffer;
+	float* oldState2buffer = divaAudioMixCls->state2->buffer;
+
 	divaBufSizeInFrames = frames;
-	divaAudioMixCls->mixbuffer = new float[divaBufSizeInFrames * 4];
+
+	divaAudioMixCls->mixbuffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
 	divaAudioMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
-	divaAudioMixCls->state2->buffer = new float[divaBufSizeInFrames * 4];
+	divaAudioMixCls->state2->buffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
 	divaAudioMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
 	divaAudCls->buffer_size = divaBufSizeInFrames;
+
+	free(oldMixbuffer);
+	free(oldState2buffer);
 	printf("[DivaSound] Resized internal buffers to %d frames\n", frames);
 }
 
@@ -57,6 +64,34 @@ void resizeTestLoop()
 }
 
 
+void stopPlayback()
+{
+	if (useAsio)
+	{
+		if (BASS_ASIO_IsStarted()) BASS_ASIO_Stop();
+	}
+	else
+	{
+		if (ma_device_is_started(&device)) ma_device_stop(&device);
+	}
+}
+
+void closeDevice()
+{
+	stopPlayback();
+
+	if (useAsio)
+	{
+		BASS_ASIO_Free();
+	}
+	else
+	{
+		ma_device_uninit(&device);
+		ma_context_uninit(&context);
+	}
+}
+
+
 void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
 	(void)pDevice;
@@ -64,12 +99,15 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	(void)pInput;
 	(void)frameCount;
 
-	//printf("%d", divaAudCls->idk);
+	if (divaAudCls->breakDword != 0 || divaAudioMixCls->mixbuffer == nullptr)
+	{
+		stopPlayback();
+		return;
+	}
 
 	if (frameCount > divaBufSizeInFrames)
 	{
 		printf("[DivaSound] Warning: PDAFT buffer is too small\n");
-		//frameCount = divaBufSizeInFrames;
 
 		// allocate a larger buffer if necessary.
 		// add 128 frames of padding because this isn't normal and we want to avoid it happening again if possible.
@@ -77,7 +115,6 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 	}
 	
 	divaAudioFillbuffer(divaAudioMixCls, (int16_t*)pOutput, frameCount, 0, 0);
-	//printf("%p %d\n", divaAudioMixCls, ((int16_t*)pOutput)[0]);
 
 	if (bitDepth > 16) // we should generate the output buffer ourselves
 	{
@@ -90,7 +127,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 		int startChannel = 4 - nChannels;
 
-		for (int i = 0; i < frameCount; i++)
+		for (unsigned int i = 0; i < frameCount; i++)
 		{
 			for (int currentChannel = startChannel; currentChannel < 4; currentChannel++)
 			{
@@ -100,7 +137,7 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 				if (bitDepth == 24) // 24 bit int output
 				{
-					int32_t out_val = divaAudioMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel] * 8388607.0f;
+					int32_t out_val = (int32_t)(divaAudioMixCls->mixbuffer[i*4 + currentChannel] * volumes[outputChannel] * 8388607.0f);
 
 					if (out_val > 8388607) out_val = 8388607;
 					else if (out_val < -8388608) out_val = -8388608;
@@ -126,12 +163,6 @@ DWORD asioCallback(bool input, DWORD channel, void* buffer, DWORD length, void* 
 	ma_uint32 frames = length * 8 / bitDepth / nChannels;
 	audioCallback(&device, buffer, NULL, frames);
 	return length;
-}
-
-void asioClose()
-{
-	if (BASS_ASIO_IsStarted()) BASS_ASIO_Stop();
-	BASS_ASIO_Free();
 }
 
 void loadConfig()
@@ -196,6 +227,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	printf("[DivaSound] Output config: %S %dch %dbit\n", backendName, nChannels, bitDepth);
 
 	divaAudCls = cls;
+	divaAudCls->breakDword = 0;
 
 	if (useOldInit)
 	{
@@ -283,7 +315,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 
 		printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", asioInfo.bufpref, (int)(asioInfo.bufpref * 1000 / actualRate), (int)actualRate);
 
-		divaBufSizeInFrames = asioInfo.bufpref * 44100 / actualRate;
+		divaBufSizeInFrames = (int)(asioInfo.bufpref * 44100 / actualRate);
 		divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / 44100;
 		printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, 44100);
 
@@ -367,6 +399,9 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 		printf("[DivaSound] Started playback\n");
 	}
 
+	divaAudCls->hCallback = new HANDLE();
+	*divaAudCls->hCallback = (HANDLE)1; // this *should* be an actual thread handle, but I bypassed the destruction stuff anyway lol
+
 	divaAudCls->buffer_size = divaBufSizeInFrames;
 	//loopThread = std::thread(resizeTestLoop);
 }
@@ -398,6 +433,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 			// return from the original init early
 			InjectCode((void*)0x0000000140626C29, { 0x48, 0xE9 });
 		}
+
+		// skip some thread deinitialisation stuff I don't care about
+		InjectCode((void*)0x0000000140625F42, { 0xEB, 0x29 });
     
 		DisableThreadLibraryCalls(hModule);
 		DetourTransactionBegin();
@@ -407,7 +445,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH)
 	{
-		if (useAsio) asioClose(); // this doesn't actually get called...
+		closeDevice();
 	}
 	return TRUE;
 }
