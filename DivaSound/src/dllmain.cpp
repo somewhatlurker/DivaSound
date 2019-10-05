@@ -533,6 +533,7 @@ PluginConfigOption config[] = {
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 0 } }, // 0px spacers are placeholders for ASIO config
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 0 } },
+	{ CONFIG_SPACER, new PluginConfigSpacerData{ 0 } },
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
 	{ CONFIG_BUTTON, new PluginConfigButtonData{ L"Help", L"Get help on the DivaSound wiki.", OpenWiki } },
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
@@ -571,8 +572,9 @@ extern "C" __declspec(dllexport) PluginConfigArray GetPluginOptions(void)
 			if (devices.size() > 0)
 			{
 				((PluginConfigDropdownTextData*)config[0].data)->valueStrings.push_back(L"ASIO");
-				config[7] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"auto_device", L"asio", CONFIG_FILE, L"Automatic ASIO device", L"Automatically choose the first available device for ASIO backend.\nDisable this to use a manually choose a device.", true, false } };
-				config[8] = { CONFIG_DROPDOWN_INDEX, new PluginConfigDropdownIndexData{ L"device", L"asio", CONFIG_FILE, L"ASIO Device:", L"Sets the ASIO device.\nMake sure automatic device selection is turned off to enable this.", 0, devices } };
+				config[7] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"show_config", L"asio", CONFIG_FILE, L"Show ASIO config", L"Show the ASIO driver config window when the game opens.\nUse this to adjust output settings, then disable it.\n(ASIO devices are unaffected by the normal buffer settings)", false, false } };
+				config[8] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"auto_device", L"asio", CONFIG_FILE, L"Automatic ASIO device", L"Automatically choose the first available device for ASIO backend.\nDisable this to use a manually choose a device.", true, false } };
+				config[9] = { CONFIG_DROPDOWN_INDEX, new PluginConfigDropdownIndexData{ L"device", L"asio", CONFIG_FILE, L"ASIO Device:", L"Sets the ASIO device.\nMake sure automatic device selection is turned off to enable this.", 0, devices } };
 			}
 		}
 	}
