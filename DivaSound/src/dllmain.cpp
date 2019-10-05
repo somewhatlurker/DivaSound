@@ -362,7 +362,14 @@ void loadConfig()
 	}
 
 
-	asioDevice = GetPrivateProfileIntW(L"asio", L"device", -1, CONFIG_FILE);
+	if (GetPrivateProfileIntW(L"asio", L"auto_device", TRUE, CONFIG_FILE))
+	{
+		asioDevice = -1;
+	}
+	else
+	{
+		asioDevice = GetPrivateProfileIntW(L"asio", L"device", -1, CONFIG_FILE);
+	}
 
 	showAsioPanel = GetPrivateProfileIntW(L"asio", L"show_config", 0, CONFIG_FILE) > 0 ? true : false;
 }
@@ -522,7 +529,10 @@ PluginConfigOption config[] = {
 	{ CONFIG_DROPDOWN_NUMBER, new PluginConfigDropdownNumberData{ L"bit_depth", L"general", CONFIG_FILE, L"Bit Depth:", L"Sets the audio sample format.\n(32 uses floating point samples)", 16, std::vector<int>({ 16, 24, 32 }), false } },
 	{ CONFIG_NUMERIC, new PluginConfigNumericData{ L"buffer_size", L"buffer", CONFIG_FILE, L"Target Buffer Size:", L"Sets the target buffer size in ms.\nWASAPI will often ignore this and adapt to your hardware config automatically.", 10, 1, 100 } },
 	{ CONFIG_NUMERIC, new PluginConfigNumericData{ L"periods", L"buffer", CONFIG_FILE, L"Buffer Periods:", L"Sets how often the buffer should be filled.\nFewer periods usually allows for lower latency, but lowering this may cause issues.", 2, 1, 8 } },
-	{ CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"alternate_init", L"general", CONFIG_FILE, L"Use new init", L"Use the full initialisation replacement.\nTry unchecking this if DivaSound seems to cause crashes.", true } },
+	{ CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"alternate_init", L"general", CONFIG_FILE, L"Use new init", L"Use the full initialisation replacement.\nTry unchecking this if DivaSound seems to cause crashes.", true, false } },
+	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
+	{ CONFIG_SPACER, new PluginConfigSpacerData{ 0 } }, // 0px spacers are placeholders for ASIO config
+	{ CONFIG_SPACER, new PluginConfigSpacerData{ 0 } },
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
 	{ CONFIG_BUTTON, new PluginConfigButtonData{ L"Help", L"Get help on the DivaSound wiki.", OpenWiki } },
 	{ CONFIG_SPACER, new PluginConfigSpacerData{ 8 } },
@@ -540,5 +550,32 @@ extern "C" __declspec(dllexport) LPCWSTR GetPluginDescription(void)
 
 extern "C" __declspec(dllexport) PluginConfigArray GetPluginOptions(void)
 {
+	if (BASS_ASIO_GetDeviceInfo != NULL && BASS_ASIO_SetUnicode != NULL)
+	{
+		if (BASS_ASIO_SetUnicode(true)) // ensure strings are UTF-16
+		{
+			std::vector<LPCWSTR> devices;
+			BASS_ASIO_DEVICEINFO info;
+			for (int i = 0; BASS_ASIO_GetDeviceInfo(i, &info); i++)
+			{
+				devices.push_back(_wcsdup((WCHAR*)info.name));
+			}
+
+			// make sure user-set device isn't out of bounds
+			int asioDevice = GetPrivateProfileIntW(L"asio", L"device", -1, CONFIG_FILE);
+			while (asioDevice + 1 > devices.size())
+			{
+				devices.push_back(L"---");
+			}
+
+			if (devices.size() > 0)
+			{
+				((PluginConfigDropdownTextData*)config[0].data)->valueStrings.push_back(L"ASIO");
+				config[7] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"auto_device", L"asio", CONFIG_FILE, L"Automatic ASIO device", L"Automatically choose the first available device for ASIO backend.\nDisable this to use a manually choose a device.", true, false } };
+				config[8] = { CONFIG_DROPDOWN_INDEX, new PluginConfigDropdownIndexData{ L"device", L"asio", CONFIG_FILE, L"ASIO Device:", L"Sets the ASIO device.\nMake sure automatic device selection is turned off to enable this.", 0, devices } };
+			}
+		}
+	}
+
 	return PluginConfigArray{ _countof(config), config };
 }
