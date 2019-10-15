@@ -579,6 +579,13 @@ extern "C" __declspec(dllexport) PluginConfigArray GetPluginOptions(void)
 				((PluginConfigDropdownTextData*)config[0].data)->valueStrings.push_back(L"ASIO");
 
 				const int cfgPos = 10;
+				delete config[cfgPos].data;
+				delete config[cfgPos + 1].data;
+				delete config[cfgPos + 2].data;
+				delete config[cfgPos + 3].data;
+				delete config[cfgPos + 4].data;
+				delete config[cfgPos + 5].data;
+
 				config[cfgPos] = { CONFIG_GROUP_START, new PluginConfigGroupData{ L"ASIO Settings", 90 } };
 				config[cfgPos + 1] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"show_config", L"asio", CONFIG_FILE, L"Show ASIO config", L"Show the ASIO driver config window when the game opens.\nUse this to adjust output settings, then disable it.\n(ASIO devices are unaffected by the normal buffer settings)", false, false } };
 				config[cfgPos + 2] = { CONFIG_BOOLEAN, new PluginConfigBooleanData{ L"auto_device", L"asio", CONFIG_FILE, L"Automatic ASIO device", L"Automatically choose the first available device for ASIO backend.\nDisable this to use a manually choose a device.", true, false } };
