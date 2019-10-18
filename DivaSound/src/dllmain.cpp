@@ -32,18 +32,36 @@ void NopBytes(void* address, unsigned int num)
 void resizeInternalBuffers(int frames)
 {
 	float* oldMixbuffer = divaAudioMixCls->mixbuffer;
-	float* oldState2buffer = divaAudioMixCls->state2->buffer;
 
 	divaBufSizeInFrames = frames;
 
 	divaAudioMixCls->mixbuffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
 	divaAudioMixCls->mixbuffer_size = divaBufSizeInFrames * 4 * 4;
-	divaAudioMixCls->state2->buffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
-	divaAudioMixCls->state2->buffer_size = divaBufSizeInFrames * 4 * 4;
+	free(oldMixbuffer);
+
+	for (int i = 0; i < divaAudioMixCls->streamingChannels_len; i++)
+	{
+		float* oldChannelBuffer = divaAudioMixCls->streamingChannels[i].buffer;
+		if (oldChannelBuffer != nullptr)
+		{
+			if (divaAudioMixCls->streamingChannels[i].playing == 0)
+			{
+				divaAudioMixCls->streamingChannels[i].buffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
+				divaAudioMixCls->streamingChannels[i].buffer_size = divaBufSizeInFrames * 4 * 4;
+				free(oldChannelBuffer);
+			}
+			else if (divaAudioMixCls->streamingChannels[i].mutex != nullptr && mtx_lock_0(&divaAudioMixCls->streamingChannels[i].mutex) == 0)
+			{
+				divaAudioMixCls->streamingChannels[i].buffer = (float*)malloc(divaBufSizeInFrames * 4 * 4);
+				divaAudioMixCls->streamingChannels[i].buffer_size = divaBufSizeInFrames * 4 * 4;
+				free(oldChannelBuffer);
+				mtx_unlock(&divaAudioMixCls->streamingChannels[i].mutex);
+				//printf("[DivaSound] %d\n", i);
+			}
+		}
+	}
 	divaAudCls->buffer_size = divaBufSizeInFrames;
 
-	free(oldMixbuffer);
-	free(oldState2buffer);
 	printf("[DivaSound] Resized internal buffers to %d frames\n", frames);
 }
 
@@ -52,12 +70,12 @@ void resizeTestLoop()
 	bool dir = true;
 	while (true)
 	{
-		Sleep(5000);
+		Sleep(3000);
 
 		if (dir)
-			resizeInternalBuffers(divaBufSizeInFrames + 3000);
+			resizeInternalBuffers(divaBufSizeInFrames + 10000);
 		else
-			resizeInternalBuffers(divaBufSizeInFrames - 3000);
+			resizeInternalBuffers(divaBufSizeInFrames - 10000);
 
 		dir = !dir;
 	}
