@@ -458,11 +458,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	}
 	else
 	{
-		if (!maInit())
-		{
-			printf("[DivaSound] Failed to initialise miniaudio\n");
-			return;
-		}
+		if (!maInit()) return;
 
 		if (device.playback.internalSampleRate)
 		{
@@ -482,7 +478,7 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 			printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, 44100);
 			printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
 
-			divaBufSizeInFrames = device.playback.internalBufferSizeInFrames; // just assume output is 44100
+			divaBufSizeInFrames = device.playback.internalBufferSizeInFrames * device.sampleRate / 44100;
 			divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
 			printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
 		}
