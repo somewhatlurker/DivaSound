@@ -458,15 +458,34 @@ void hookedAudioInit(initClass *cls, uint64_t unk, uint64_t unk2)
 	}
 	else
 	{
-		if (!maInit()) return;
+		if (!maInit())
+		{
+			printf("[DivaSound] Failed to initialise miniaudio\n");
+			return;
+		}
 
-		maInternalBufferSizeInMilliseconds = device.playback.internalBufferSizeInFrames * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
-		printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, device.playback.internalSampleRate);
-		printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
+		if (device.playback.internalSampleRate)
+		{
+			maInternalBufferSizeInMilliseconds = device.playback.internalBufferSizeInFrames * 1000 / device.playback.internalSampleRate; // because miniaudio doesn't seem to have this
+			printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, device.playback.internalSampleRate);
+			printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
 
-		divaBufSizeInFrames = device.playback.internalBufferSizeInFrames * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
-		divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
-		printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
+			divaBufSizeInFrames = device.playback.internalBufferSizeInFrames * device.sampleRate / device.playback.internalSampleRate; // +128; // 128 is just a bit extra in case resampling needs it or something. idk
+			divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
+			printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
+		}
+		else
+		{
+			printf("[DivaSound] Unable to determine output sample rate. Assuming 44100Hz.\n");
+
+			maInternalBufferSizeInMilliseconds = device.playback.internalBufferSizeInFrames * 1000 / 44100; // because miniaudio doesn't seem to have this
+			printf("[DivaSound] Output buffer size: %d (%dms at %dHz)\n", device.playback.internalBufferSizeInFrames, maInternalBufferSizeInMilliseconds, 44100);
+			printf("[DivaSound] Buffer periods: %d\n", device.playback.internalPeriods);
+
+			divaBufSizeInFrames = device.playback.internalBufferSizeInFrames; // just assume output is 44100
+			divaBufSizeInMilliseconds = divaBufSizeInFrames * 1000 / device.sampleRate;
+			printf("[DivaSound] PDAFT buffer size: %d (%dms at %dHz)\n", divaBufSizeInFrames, divaBufSizeInMilliseconds, device.sampleRate);
+		}
 
 
 		divaAudioAllocMixer(divaAudioMixCls, unk, unk2, divaBufSizeInFrames);
